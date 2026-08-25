@@ -1,0 +1,20 @@
+# Senza filtro Score-P strumenta OGNI routine di PSBLAS, incluse quelle
+# chiamate in loop stretti: overhead enorme e tracce ingestibili.
+# Si tiene solo il livello che interessa: solver, kernel delle potenze,
+# spmm, prodotti scalari, riduzioni, applicazione del precondizionatore.
+SCOREP_REGION_NAMES_BEGIN
+  EXCLUDE *
+  INCLUDE MAIN__
+          *psb_dscg_vect*
+          *psb_dscg2_vect*
+          *psb_dcg_vect*
+          *psb_d_pmpk*
+          *psb_dspmm*
+          *psb_gedots*
+          *psb_gedot*
+          *psb_genrm2*
+          *psb_sum*
+          *psb_halo*
+          *amg_dprecaply*
+          *psb_check_conv*
+SCOREP_REGION_NAMES_END

@@ -101,7 +101,7 @@ module amg_d_prec_type
     ! The multilevel hierarchy
     !
     type(amg_d_onelev_type), allocatable :: precv(:)
-    integer(psb_ipk_)                    :: nlevs
+    integer(psb_ipk_)                    :: nlevs = 0
   contains
     procedure, pass(prec) :: psb_d_apply2_mvect_col => amg_d_apply2_mvect_col
     procedure, pass(prec) :: psb_d_apply1_mvect_col => amg_d_apply1_mvect_col
@@ -684,6 +684,7 @@ contains
       end do
       deallocate(prec%precv, stat=info)
     end if
+    prec%nlevs = 0
     call psb_erractionrestore(err_act)
     return
 

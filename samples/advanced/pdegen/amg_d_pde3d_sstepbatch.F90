@@ -101,14 +101,18 @@ program amg_d_pde3d_sstepbatch
   ! descriptor
   type(psb_desc_type)   :: desc_a
   ! dense vectors
-  type(psb_d_vect_type) :: x, b, r, b_copy, x_copy
+  type(psb_d_vect_type) :: x, b, r, b_copy, x_copy, rchk
+  real(psb_dpk_)        :: bnrm
+  real(psb_dpk_), allocatable :: rres(:, :, :), errest(:, :, :)
+  integer(psb_ipk_), allocatable :: sinfo(:, :, :)
+  character(len=80) :: labelbuf
   ! parallel environment
   type(psb_ctxt_type)   :: ctxt
   integer(psb_ipk_)     :: iam, np, nth
 
   ! solver parameters
   integer(psb_ipk_) :: itmax, itrace, istopc, irst, nlv
-  integer(psb_ipk_), allocatable :: iter(:, :)
+  integer(psb_ipk_), allocatable :: iter(:, :, :)
   integer(psb_epk_) :: amatsize, precsize, descsize, vecsize
   real(psb_dpk_)    :: err, resmx, resmxp, eigext(2)
 
@@ -497,12 +501,12 @@ program amg_d_pde3d_sstepbatch
   end if
 
   call psb_amx(ctxt, thier)
-  call psb_amx(ctxt, tprec)
+  call psb_amx(ctxt, tsmth)
   
   if(iam == psb_root_) then
     write(psb_out_unit, '(" ")')
     write(psb_out_unit, '("Preconditioner:      ", a)')      trim(p_choice%descr)
-    write(psb_out_unit, '("Preconditioner time: ", es12.5)') thier + tprec
+    write(psb_out_unit, '("Preconditioner time: ", es12.5)') thier + tsmth
     write(psb_out_unit, '(" ")')
   end if
 
@@ -532,8 +536,28 @@ program amg_d_pde3d_sstepbatch
 
   allocate(tslv(size(sValues), size(Gsolvers), 2))
   tslv = dzero
-  allocate(iter(size(sValues), size(Gsolvers)))
+  allocate(iter(size(sValues), size(Gsolvers), 2))
   iter = dzero
+
+  !
+  ! Validation workspace: true residual b - A*x recomputed after every solve,
+  ! kept alongside the recursively updated estimate returned by psb_krylov.
+  !
+  allocate(rres(size(sValues), size(Gsolvers), 2))
+  allocate(errest(size(sValues), size(Gsolvers), 2))
+  allocate(sinfo(size(sValues), size(Gsolvers), 2))
+  rres   = dzero
+  errest = dzero
+  sinfo  = psb_success_
+  call psb_geall(rchk, desc_a, info)
+  call psb_geasb(rchk, desc_a, info)
+  bnrm = psb_genrm2(b, desc_a, info)
+
+  !
+  ! Let a failing variant return instead of aborting the whole batch:
+  ! the default error action is ABORT, which kills the run inside psb_krylov.
+  !
+  call psb_set_erract_return()
 
   call psb_geall(b_copy, desc_a, info)
   call psb_geall(x_copy, desc_a, info)
@@ -544,12 +568,23 @@ program amg_d_pde3d_sstepbatch
   call psb_geaxpby(done, x, dzero, x_copy, desc_a, info)
   t1 = psb_wtime()
   call psb_krylov('CG', a, prec, b_copy, x_copy, s_choice%eps, desc_a, info, &
-                  & itmax = s_choice%itmax, iter = iter(1, 1), err = err, &
+                  & itmax = s_choice%itmax, iter = iter(1, 1, 1), err = err, &
                   & itrace = s_choice%itrace, istop = s_choice%istopc, &
                   & irst = s_choice%irst)
   call psb_barrier(ctxt)
   tslv(1, 1, 1) = psb_wtime() - t1;
   call psb_amx(ctxt, tslv(1, 1, 1))
+
+  sinfo(1, 1, 1) = info
+  if(info /= psb_success_) then
+    call psb_clean_errstack()
+    info = psb_success_
+  else
+    call psb_geaxpby(done, b, dzero, rchk, desc_a, info)
+    call psb_spmm(-done, a, x_copy, done, rchk, desc_a, info)
+    rres(1, 1, 1)   = psb_genrm2(rchk, desc_a, info) / bnrm
+    errest(1, 1, 1) = err
+  end if
 
   do indS = 2, size(sValues)
     do indG = 1, size(Gsolvers)
@@ -557,7 +592,7 @@ program amg_d_pde3d_sstepbatch
       call psb_geaxpby(done, x, dzero, x_copy, desc_a, info)
       t1 = psb_wtime()
       call psb_krylov('SSTEPCG', a, prec, b_copy, x_copy, s_choice%eps, desc_a, info, &
-                      & itmax = s_choice%itmax, iter = iter(indS, indG), err = err, &
+                      & itmax = s_choice%itmax, iter = iter(indS, indG, 1), err = err, &
                       & itrace = s_choice%itrace, istop = s_choice%istopc, &
                       & irst = s_choice%irst, steps = sValues(indS), &
                       & base_type = s_choice%base_type, eigext = eigext, &
@@ -566,11 +601,22 @@ program amg_d_pde3d_sstepbatch
       tslv(indS, indG, 1) = psb_wtime() - t1;
       call psb_amx(ctxt, tslv(indS, indG, 1))
 
+      sinfo(indS, indG, 1) = info
+      if(info /= psb_success_) then
+        call psb_clean_errstack()
+        info = psb_success_
+      else
+        call psb_geaxpby(done, b, dzero, rchk, desc_a, info)
+        call psb_spmm(-done, a, x_copy, done, rchk, desc_a, info)
+        rres(indS, indG, 1)   = psb_genrm2(rchk, desc_a, info) / bnrm
+        errest(indS, indG, 1) = err
+      end if
+
       call psb_geaxpby(done, b, dzero, b_copy, desc_a, info)
       call psb_geaxpby(done, x, dzero, x_copy, desc_a, info)
       t1 = psb_wtime()
       call psb_krylov('SSTEPCG1', a, prec, b_copy, x_copy, s_choice%eps, desc_a, info, &
-                      & itmax = s_choice%itmax, iter = iter(indS, indG), err = err, &
+                      & itmax = s_choice%itmax, iter = iter(indS, indG, 2), err = err, &
                       & itrace = s_choice%itrace, istop = s_choice%istopc, &
                       & irst = s_choice%irst, steps = sValues(indS), &
                       & base_type = s_choice%base_type, eigext = eigext, &
@@ -578,8 +624,21 @@ program amg_d_pde3d_sstepbatch
       call psb_barrier(ctxt)
       tslv(indS, indG, 2) = psb_wtime() - t1;
       call psb_amx(ctxt, tslv(indS, indG, 2))
+
+      sinfo(indS, indG, 2) = info
+      if(info /= psb_success_) then
+        call psb_clean_errstack()
+        info = psb_success_
+      else
+        call psb_geaxpby(done, b, dzero, rchk, desc_a, info)
+        call psb_spmm(-done, a, x_copy, done, rchk, desc_a, info)
+        rres(indS, indG, 2)   = psb_genrm2(rchk, desc_a, info) / bnrm
+        errest(indS, indG, 2) = err
+      end if
     end do
   end do
+
+  call psb_set_erract_abort()
 
   if(info /= psb_success_) then
     info = psb_err_from_subroutine_
@@ -624,26 +683,16 @@ program amg_d_pde3d_sstepbatch
     write(psb_out_unit, '("Total preconditioner setup time     : ", es12.5)') tsmth + thier
     write(psb_out_unit, '("Time to estimate the extreme eigv   : ", es12.5)') tstpm
 
-    write(psb_out_unit, '("Solving with CG")')
-    write(psb_out_unit, '("    Iterations to convergence           : ", i12)')    iter(1, 1)
-    write(psb_out_unit, '("    Time to solve system                : ", es12.5)') tslv(1, 1, 1)
-    write(psb_out_unit, '("    Time per iteration                  : ", es12.5)') tslv(1, 1, 1) / iter(1, 1)
-    write(psb_out_unit, '("    Total time                          : ", es12.5)') tslv(1, 1, 1) + tprec + thier
+    call report_solver('Solving with CG', 1_psb_ipk_, 1_psb_ipk_, 1_psb_ipk_)
 
     do indS = 2, size(sValues)
       do indG = 1, size(Gsolvers)
-        write(psb_out_unit, '("Solving with sStepC(", i2, ") and Gram solver = ", a)')    sValues(indS), Gsolvers(indG)
-        write(psb_out_unit, '("    Iterations to convergence           : ", i12)')    iter(indS, indG)
-        write(psb_out_unit, '("    Time to solve system                : ", es12.5)') tslv(indS, indG, 1)
-        write(psb_out_unit, '("    Time per iteration                  : ", es12.5)') tslv(indS, indG, 1) / iter(indS, indG)
-        write(psb_out_unit, '("    Total time                          : ", es12.5)') tslv(indS, indG, 1) + tprec + thier
+        write(labelbuf, '("Solving with sStepC(", i2, ") and Gram solver = ", a)') sValues(indS), Gsolvers(indG)
+        call report_solver(labelbuf, indS, indG, 1_psb_ipk_)
 
         
-        write(psb_out_unit, '("Solving with sStepCv2(", i2, ") and Gram solver = ", a)')    sValues(indS), Gsolvers(indG)
-        write(psb_out_unit, '("    Iterations to convergence           : ", i12)')    iter(indS, indG)
-        write(psb_out_unit, '("    Time to solve system                : ", es12.5)') tslv(indS, indG, 2)
-        write(psb_out_unit, '("    Time per iteration                  : ", es12.5)') tslv(indS, indG, 2) / iter(indS, indG)
-        write(psb_out_unit, '("    Total time                          : ", es12.5)') tslv(indS, indG, 2) + tprec + thier
+        write(labelbuf, '("Solving with sStepCv2(", i2, ") and Gram solver = ", a)') sValues(indS), Gsolvers(indG)
+        call report_solver(labelbuf, indS, indG, 2_psb_ipk_)
       end do
     end do
 
@@ -679,6 +728,26 @@ program amg_d_pde3d_sstepbatch
   call psb_error(ctxt)
 
 contains
+
+  subroutine report_solver(label, i, j, k)
+    implicit none
+    character(len=*), intent(in)  :: label
+    integer(psb_ipk_), intent(in) :: i, j, k
+
+    write(psb_out_unit, '(a)') trim(label)
+    if(sinfo(i, j, k) /= psb_success_) then
+      write(psb_out_unit, '("    FAILED, info = ", i0, ", gave up after ", es12.5, " s")') &
+        & sinfo(i, j, k), tslv(i, j, k)
+      return
+    end if
+    write(psb_out_unit, '("    Iterations to convergence           : ", i12)')    iter(i, j, k)
+    write(psb_out_unit, '("    Time to solve system                : ", es12.5)') tslv(i, j, k)
+    if(iter(i, j, k) > 0) &
+      & write(psb_out_unit, '("    Time per iteration                  : ", es12.5)') tslv(i, j, k) / iter(i, j, k)
+    write(psb_out_unit, '("    Total time                          : ", es12.5)') tslv(i, j, k) + tsmth + thier
+    write(psb_out_unit, '("    Error estimate (recursive)          : ", es12.5)') errest(i, j, k)
+    write(psb_out_unit, '("    True relative residual              : ", es12.5)') rres(i, j, k)
+  end subroutine report_solver
   !
   ! get iteration parameters from standard input
   !

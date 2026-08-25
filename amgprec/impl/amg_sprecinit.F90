@@ -134,6 +134,7 @@ subroutine amg_sprecinit(ctxt, prec, ptype, info)
   prec%ctxt = ctxt
   call prec%ag_data%default()
 
+  nlev_ = 0
   select case(psb_toupper(trim(ptype)))
     case ('NOPREC', 'NONE')
       nlev_ = 1
@@ -249,6 +250,11 @@ subroutine amg_sprecinit(ctxt, prec, ptype, info)
           & ': Warning: Unknown preconditioner type request "', ptype, '"'
       info = psb_err_pivot_too_small_
   end select
+
+  !
+  ! Record the number of levels; for 1-level preconditioners this is 1.
+  !
+  if (nlev_ > 0) call prec%set_nlevs(nlev_)
 
   call psb_erractionrestore(err_act)
   return

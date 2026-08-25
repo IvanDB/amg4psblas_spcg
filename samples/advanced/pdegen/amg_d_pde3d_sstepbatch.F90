@@ -106,6 +106,9 @@ program amg_d_pde3d_sstepbatch
   real(psb_dpk_), allocatable :: rres(:, :, :), errest(:, :, :)
   integer(psb_ipk_), allocatable :: sinfo(:, :, :)
   character(len=80) :: labelbuf
+  character(len=32) :: envbuf
+  integer(psb_ipk_) :: envstat
+  real(psb_dpk_)    :: eigsafe, eigminf
   ! parallel environment
   type(psb_ctxt_type)   :: ctxt
   integer(psb_ipk_)     :: iam, np, nth
@@ -524,6 +527,22 @@ program amg_d_pde3d_sstepbatch
   call psb_barrier(ctxt)
   t1 = psb_wtime()
   call psb_powermethod(a, prec, eigext(2), desc_a, info)
+  !
+  ! The power method converges from below, so it UNDERESTIMATES lambda_max.
+  ! If the Chebyshev interval does not enclose the spectrum the basis blows up,
+  ! hence the tunable safety factor. eigminf sets lambda_min as a fraction of lambda_max.
+  !
+  eigsafe = done
+  call get_environment_variable('SSTEP_EIG_SAFETY', envbuf, status = envstat)
+  if(envstat == 0) read(envbuf, *) eigsafe
+  eigminf = dzero
+  call get_environment_variable('SSTEP_EIG_MINFRAC', envbuf, status = envstat)
+  if(envstat == 0) read(envbuf, *) eigminf
+  if(iam == psb_root_) write(psb_out_unit, '("lambda_max raw estimate             : ", es12.5)') eigext(2)
+  eigext(2) = eigsafe * eigext(2)
+  eigext(1) = eigminf * eigext(2)
+  if(iam == psb_root_) write(psb_out_unit, '("Chebyshev interval                  : [", es12.5, ", ", es12.5, "]")') &
+    & eigext(1), eigext(2)
   call psb_barrier(ctxt)
   tstpm = psb_wtime() - t1
 

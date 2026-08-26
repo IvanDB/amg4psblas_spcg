@@ -8,10 +8,14 @@ production QOS with longer wall time.
     sbatch build_mn5.sbatch
 
 Compiles PSBLAS, AMG4PSBLAS and the pdegen samples on a compute node, so the
-login node never runs a long compile. Defaults: source tree in `$HOME/sstep`,
-PSBLAS installed to `$HOME/opt/psblas3-sstep`. Override with
+login node never runs a long compile. Can be submitted from anywhere: both
+repositories are located automatically, starting from the submission directory
+and falling back to a search under `$HOME`. They need not be siblings.
 
-    sbatch --export=ALL,SRC=/path/to/sstep,PREFIX=$HOME/opt/psblas build_mn5.sbatch
+PSBLAS is installed to `$HOME/opt/psblas3-sstep` by default. To pin any of it:
+
+    sbatch --export=ALL,PSBLAS_SRC=/path/to/psblas3_spcg,AMG_SRC=/path/to/amg4psblas_spcg build_mn5.sbatch
+    sbatch --export=ALL,PREFIX=$HOME/opt/psblas build_mn5.sbatch
 
 PSBLAS *must* be installed before AMG4PSBLAS is configured, otherwise the
 samples link against a stale library and the fixed bugs come back silently.

@@ -73,12 +73,20 @@ AMG_SRC=$(locate_repo "$AMG_SRC" amg4psblas_spcg) || {
   echo "  sbatch --export=ALL,PSBLAS_SRC=/path/to/psblas3_spcg,AMG_SRC=/path/to/amg4psblas_spcg $0"
   exit 1; }
 
+# Counts the CPUs in a list such as "56-71,168-183".
+count_cpus () {
+  awk -F, '{n=0; for(i=1;i<=NF;i++){ if($i ~ /-/){split($i,r,"-"); n+=r[2]-r[1]+1} else n++ } print n}'
+}
+CPU_LIST=$(awk '/Cpus_allowed_list/{print $2}' /proc/self/status)
+
 echo "=== allocation"
 echo "    job id            : ${SLURM_JOB_ID:-none}"
 echo "    cpus-per-task     : ${SLURM_CPUS_PER_TASK:-unset}"
-echo "    cpus on node      : ${SLURM_JOB_CPUS_PER_NODE:-unset}"
-echo "    visible cores     : $(nproc)"
-echo "    affinity mask     : $(taskset -cp $$ 2>/dev/null | sed 's/.*: //' || echo n/a)"
+echo "    affinity list     : ${CPU_LIST:-n/a}"
+echo "    logical CPUs here : $(echo "$CPU_LIST" | count_cpus)   (SMT siblings included)"
+echo "    logical CPUs node : $(nproc --all)"
+# Deliberately not plain "nproc": coreutils honours OMP_NUM_THREADS, which
+# SLURM sets to 1, so it reports 1 regardless of what was allocated.
 
 # Average parallelism actually achieved: cumulative CPU time of all children
 # divided by wall time. With Fortran module dependencies this lands well below

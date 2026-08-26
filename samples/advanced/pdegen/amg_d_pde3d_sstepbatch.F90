@@ -596,6 +596,9 @@ program amg_d_pde3d_sstepbatch
 
   sinfo(1, 1, 1) = info
   if(info /= psb_success_) then
+    ! Print the reason before discarding it: the stack carries the breakdown
+    ! point, e.g. "Gram factorization fail it=8 info=10".
+    if(iam == psb_root_) call psb_error_print_stack()
     call psb_clean_errstack()
     info = psb_success_
   else
@@ -622,6 +625,9 @@ program amg_d_pde3d_sstepbatch
 
       sinfo(indS, indG, 1) = info
       if(info /= psb_success_) then
+        ! Print the reason before discarding it: the stack carries the breakdown
+        ! point, e.g. "Gram factorization fail it=8 info=10".
+        if(iam == psb_root_) call psb_error_print_stack()
         call psb_clean_errstack()
         info = psb_success_
       else
@@ -646,6 +652,9 @@ program amg_d_pde3d_sstepbatch
 
       sinfo(indS, indG, 2) = info
       if(info /= psb_success_) then
+        ! Print the reason before discarding it: the stack carries the breakdown
+        ! point, e.g. "Gram factorization fail it=8 info=10".
+        if(iam == psb_root_) call psb_error_print_stack()
         call psb_clean_errstack()
         info = psb_success_
       else

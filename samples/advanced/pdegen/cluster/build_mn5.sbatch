@@ -73,6 +73,29 @@ AMG_SRC=$(locate_repo "$AMG_SRC" amg4psblas_spcg) || {
   echo "  sbatch --export=ALL,PSBLAS_SRC=/path/to/psblas3_spcg,AMG_SRC=/path/to/amg4psblas_spcg $0"
   exit 1; }
 
+echo "=== allocation"
+echo "    job id            : ${SLURM_JOB_ID:-none}"
+echo "    cpus-per-task     : ${SLURM_CPUS_PER_TASK:-unset}"
+echo "    cpus on node      : ${SLURM_JOB_CPUS_PER_NODE:-unset}"
+echo "    visible cores     : $(nproc)"
+echo "    affinity mask     : $(taskset -cp $$ 2>/dev/null | sed 's/.*: //' || echo n/a)"
+
+# Average parallelism actually achieved: cumulative CPU time of all children
+# divided by wall time. With Fortran module dependencies this lands well below
+# the -j value, because much of the build is a serial chain.
+cpu_report () {
+  local tf; tf=$(mktemp)
+  times > "$tf"   # redirection, not a pipe: a pipe runs the builtin in a
+                  # subshell, which has no children and reports zeros
+  awk -v w="$SECONDS" -v j="$MAKE_J" '
+    function sec(t) { split(t, a, "m"); sub("s", "", a[2]); return a[1]*60 + a[2] }
+    NR == 2 { cpu = sec($1) + sec($2)
+      printf "    children CPU time : %.0f s\n", cpu
+      printf "    wall time         : %d s\n", w
+      if (w > 0) printf "    cores busy on avg : %.1f   (asked make -j%s)\n", cpu/w, j }' "$tf"
+  rm -f "$tf"
+}
+
 echo "=== PSBLAS src  : $PSBLAS_SRC"
 echo "=== AMG src     : $AMG_SRC"
 echo "=== install to  : $PREFIX"
@@ -91,6 +114,7 @@ fi
 make -j"$MAKE_J"
 make install
 echo "--- installed:"; ls -1 "$PREFIX/lib"
+echo "--- parallelism so far (PSBLAS):"; cpu_report
 
 # ---------------------------------------------------------------- AMG4PSBLAS
 echo
@@ -101,6 +125,7 @@ if [ "$SKIP_CONFIGURE" != "1" ]; then
 fi
 make -j"$MAKE_J"
 echo "--- built:"; ls -1 lib
+echo "--- parallelism so far (PSBLAS + AMG):"; cpu_report
 
 # ------------------------------------------------------------------- samples
 echo
@@ -113,6 +138,10 @@ echo "########## result"
 for b in amg_d_pde3d amg_d_pde3d_sstepbatch; do
   [ -x "runs/$b" ] && echo "  OK       runs/$b" || { echo "  MISSING  runs/$b"; exit 1; }
 done
+echo
+echo "=== parallelism, whole build"
+cpu_report
+echo "    post-mortem: sacct -j ${SLURM_JOB_ID:-JOBID} --format=JobID,AllocCPUS,TotalCPU,Elapsed,CPUTime,MaxRSS"
 echo
 echo "=== BUILD COMPLETE ==="
 echo "Next:  cd $AMG_SRC/samples/advanced/pdegen/cluster"

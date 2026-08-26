@@ -1,0 +1,68 @@
+<?xml version='1.0'?>
+<!-- Extrae configuration for the s-step CG measurements.
+     MPI interposition plus hardware counters; no rebuild of the application
+     is required. Raise <user-functions> only if the binary was compiled with
+     -finstrument-functions. -->
+<trace enabled="yes" home="EXTRAE_HOME" initial-mode="detail" type="paraver">
+
+  <mpi enabled="yes">
+    <counters enabled="yes" />
+  </mpi>
+
+  <!-- Call stack depth recorded for every MPI call. This is what lets Paraver
+       tell an MPI_Allreduce issued by psb_dscg from one issued by the
+       preconditioner or by the convergence check. -->
+  <callers enabled="yes">
+    <mpi enabled="yes">1-6</mpi>
+    <sampling enabled="no">1-5</sampling>
+  </callers>
+
+  <openmp enabled="no" />
+  <pthread enabled="no" />
+
+  <!-- Needs the application built with -finstrument-functions, otherwise it
+       records nothing. See the notes in README.md. -->
+  <user-functions enabled="no" list="$EXTRAE_HOME/share/example/user-functions.dat"
+                  exclude-automatic-functions="no">
+    <counters enabled="yes" />
+  </user-functions>
+
+  <counters enabled="yes">
+    <cpu enabled="yes" starting-set-distribution="1">
+      <set enabled="yes" domain="all" changeat-time="0">
+        PAPI_TOT_INS,PAPI_TOT_CYC,PAPI_L3_TCM
+        <sampling enabled="no" period="100000000">PAPI_TOT_CYC</sampling>
+      </set>
+      <set enabled="yes" domain="all" changeat-time="0">
+        PAPI_TOT_INS,PAPI_TOT_CYC,PAPI_LD_INS,PAPI_SR_INS
+      </set>
+    </cpu>
+    <network enabled="no" />
+    <resource-usage enabled="no" />
+    <memory-usage enabled="no" />
+  </counters>
+
+  <storage enabled="no" />
+
+  <buffer enabled="yes">
+    <size enabled="yes">5000000</size>
+    <circular enabled="no" />
+  </buffer>
+
+  <!-- Tracing starts disabled and is switched on around the solve only, so the
+       trace does not fill up with matrix generation. The sample calls no
+       Extrae API, so leave this off unless you add Extrae_restart/shutdown. -->
+  <trace-control enabled="no">
+    <file enabled="no" frequency="5m">/gpfs/scratch/set-me/control</file>
+    <global-ops enabled="no"></global-ops>
+  </trace-control>
+
+  <others enabled="no" />
+
+  <merge enabled="yes" synchronization="default" tree-fan-out="16"
+         max-memory="512" joint-states="yes" keep-mpits="yes"
+         sort-addresses="yes" overwrite="yes">
+    trace.prv
+  </merge>
+
+</trace>

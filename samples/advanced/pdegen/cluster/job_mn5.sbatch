@@ -15,12 +15,15 @@
 #   MODE=fixed      equal budget of 200 matvecs, gives the cost per iteration
 #   PROFILER=extrae produce a Paraver trace (no rebuild needed)
 #   PROFILER=none   plain timing run (default)
+#   IDIM=100        override the problem size, for validating the pipeline
+#                   cheaply before committing to the production size
 
 set -e
 
 BIN=../runs/amg_d_pde3d                # ONE method per run, chosen by KMETHD in the .inp
 MODE=${MODE:-converge}
 PROFILER=${PROFILER:-none}
+IDIM=${IDIM:-}                         # empty: use the size written in the .inp
 
 module purge
 module load bsc/1.0
@@ -28,12 +31,21 @@ module load gcc/12.3.0
 module load ucx/1.16.0-gcc
 module load openmpi/5.0.5-gcc
 module load openblas/0.3.27-gcc
-[ "$PROFILER" = "extrae" ] && module load extrae
+if [ "$PROFILER" = "extrae" ]; then
+  module load extrae || module load EXTRAE || {
+    echo "ERROR: no extrae module. Look for the right name with: module avail extrae"; exit 1; }
+fi
 module list
 
-mkdir -p results
+if [ "$PROFILER" = "extrae" ] && [ -z "${EXTRAE_HOME:-}" ]; then
+  echo "ERROR: EXTRAE_HOME is not set by the module, cannot locate libmpitracef.so"
+  exit 1
+fi
+
+mkdir -p results inputs
 NP=$(( SLURM_NNODES * SLURM_NTASKS_PER_NODE ))
 TAG="n${SLURM_NNODES}_p${NP}_${MODE}"
+[ -n "$IDIM" ] && TAG="${TAG}_d${IDIM}"
 
 case "$MODE" in
   converge) SUF="" ;;
@@ -55,7 +67,15 @@ run_one () {                           # $1 = cg | sstep
     export LD_PRELOAD="${EXTRAE_HOME}/lib/libmpitracef.so"
   fi
 
-  srun --ntasks=$NP $BIN "pde3d_${m}${SUF}.inp" > "${out}.txt" 2>&1
+  # An IDIM override writes a copy of the input rather than editing it in place.
+  local inp="pde3d_${m}${SUF}.inp"
+  if [ -n "$IDIM" ]; then
+    local gen="inputs/${m}${SUF}_d${IDIM}.inp"
+    awk -v d="$IDIM" 'NR==3{sub(/^[0-9]+/, d)} {print}' "$inp" > "$gen"
+    inp="$gen"
+  fi
+
+  srun --ntasks=$NP $BIN "$inp" > "${out}.txt" 2>&1
   unset LD_PRELOAD
 
   if [ "$PROFILER" = "extrae" ]; then

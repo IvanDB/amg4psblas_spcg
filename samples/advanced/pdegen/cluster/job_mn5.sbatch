@@ -29,6 +29,7 @@ BIN=../runs/amg_d_pde3d                # ONE method per run, chosen by KMETHD in
 MODE=${MODE:-converge}
 PROFILER=${PROFILER:-none}
 IDIM=${IDIM:-}                         # empty: use the size written in the .inp
+MPI_DEBUG=${MPI_DEBUG:-0}              # 1: report which PML OpenMPI selected
 SRUN_MPI=${SRUN_MPI:-pmix}             # OpenMPI 5 needs PMIx. Without it srun starts
                                        # N independent singletons instead of one job.
                                        # Valid values: srun --mpi=list
@@ -81,6 +82,13 @@ run_one () {                           # $1 = cg | sstep
   echo
   echo "=== $m   nodes=$SLURM_NNODES  ranks=$NP  mode=$MODE  profiler=$PROFILER"
 
+  # Which point-to-point layer got selected decides whether the run went over
+  # the fabric or fell back to a slow path. Worth knowing before trusting any
+  # communication number.
+  if [ "$MPI_DEBUG" = "1" ]; then
+    export OMPI_MCA_pml_base_verbose=10
+  fi
+
   if [ "$PROFILER" = "extrae" ]; then
     export EXTRAE_CONFIG_FILE="$SLURM_SUBMIT_DIR/extrae.xml"
     export EXTRAE_DIR="${out}.extrae"
@@ -102,6 +110,12 @@ run_one () {                           # $1 = cg | sstep
   # A PMI mismatch does not fail: every rank runs as a standalone MPI job,
   # each one allocating the whole problem. It shows up as a warning and then
   # as an out-of-memory kill, so catch it explicitly.
+  if [ "$MPI_DEBUG" = "1" ]; then
+    echo "--- point-to-point layer selected:"
+    grep -m2 -iE "select.*pml|pml.*select" "${out}.txt" || echo "    (nothing reported)"
+    unset OMPI_MCA_pml_base_verbose
+  fi
+
   # A UCX version mismatch degrades the transport silently. On a benchmark whose
   # whole point is communication cost, that invalidates the numbers.
   if grep -q "UCP API version is incompatible" "${out}.txt"; then

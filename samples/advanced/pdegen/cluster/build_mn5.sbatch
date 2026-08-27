@@ -6,6 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16         # cores for make -j
 #SBATCH --time=01:00:00
+#SBATCH --partition=gpp
 #SBATCH --qos=gp_debug
 #SBATCH --account=ehpc859
 

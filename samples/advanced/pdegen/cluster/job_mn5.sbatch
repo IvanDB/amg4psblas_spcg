@@ -5,7 +5,8 @@
 #SBATCH --ntasks-per-node=112          # MN5-GPP: 2 x Xeon 8480+ = 112 cores/node
 #SBATCH --cpus-per-task=1
 #SBATCH --exclusive
-#SBATCH --time=02:00:00
+#SBATCH --time=01:00:00
+#SBATCH --partition=gpp
 #SBATCH --qos=gp_debug
 #SBATCH --account=ehpc859
 #
@@ -17,6 +18,10 @@
 #   PROFILER=none   plain timing run (default)
 #   IDIM=100        override the problem size, for validating the pipeline
 #                   cheaply before committing to the production size
+#
+# gp_debug is capped in nodes and wall time. For the production sizes override
+# on the command line, which beats the directives in this file:
+#   sbatch --nodes=16 --qos=gp_bsccs --time=02:00:00 job_mn5.sbatch
 
 set -e
 

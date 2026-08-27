@@ -102,6 +102,14 @@ run_one () {                           # $1 = cg | sstep
   # A PMI mismatch does not fail: every rank runs as a standalone MPI job,
   # each one allocating the whole problem. It shows up as a warning and then
   # as an out-of-memory kill, so catch it explicitly.
+  # A UCX version mismatch degrades the transport silently. On a benchmark whose
+  # whole point is communication cost, that invalidates the numbers.
+  if grep -q "UCP API version is incompatible" "${out}.txt"; then
+    echo "WARNING: UCX version mismatch, the transport may have fallen back."
+    grep -m1 "UCP API version is incompatible" "${out}.txt"
+    echo "         Look for a newer module with: module avail ucx"
+  fi
+
   if grep -q "singleton" "${out}.txt"; then
     echo "ERROR: ranks did not form a communicator, they ran as singletons."
     echo "       Check the available PMI plugins with: srun --mpi=list"

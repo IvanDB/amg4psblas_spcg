@@ -52,9 +52,20 @@ profile a numerical defect rather than the communication pattern.
 
 ## 3. Runs
 
+Validate the pipeline on a small case first. IDIM=100 is 1M unknowns, a couple
+of minutes, and it exercises exactly the same code path as the production size:
+
+    IDIM=100 sbatch --nodes=1 job_mn5.sbatch
+    IDIM=100 PROFILER=extrae sbatch --nodes=1 job_mn5.sbatch
+
+Then the real measurements:
+
     for N in 1 2 4 8 16 32; do sbatch --nodes=$N job_mn5.sbatch; done   # strong scaling
     MODE=fixed       sbatch --nodes=8 job_mn5.sbatch                    # cost per iteration
     PROFILER=extrae  sbatch --nodes=8 job_mn5.sbatch                    # Paraver trace
+
+An IDIM override writes a copy under `inputs/` instead of editing the input in
+place, and tags the result files with the size.
 
 Each job runs CG and SSTEPCG in the same allocation, so the comparison is not
 polluted by landing on different nodes. Output goes to `results/`.

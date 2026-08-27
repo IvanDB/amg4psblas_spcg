@@ -29,6 +29,9 @@ BIN=../runs/amg_d_pde3d                # ONE method per run, chosen by KMETHD in
 MODE=${MODE:-converge}
 PROFILER=${PROFILER:-none}
 IDIM=${IDIM:-}                         # empty: use the size written in the .inp
+SRUN_MPI=${SRUN_MPI:-pmix}             # OpenMPI 5 needs PMIx. Without it srun starts
+                                       # N independent singletons instead of one job.
+                                       # Valid values: srun --mpi=list
 
 module purge
 module load bsc/1.0
@@ -80,7 +83,17 @@ run_one () {                           # $1 = cg | sstep
     inp="$gen"
   fi
 
-  srun --ntasks=$NP $BIN "$inp" > "${out}.txt" 2>&1
+  srun --mpi=$SRUN_MPI --ntasks=$NP $BIN "$inp" > "${out}.txt" 2>&1
+
+  # A PMI mismatch does not fail: every rank runs as a standalone MPI job,
+  # each one allocating the whole problem. It shows up as a warning and then
+  # as an out-of-memory kill, so catch it explicitly.
+  if grep -q "singleton" "${out}.txt"; then
+    echo "ERROR: ranks did not form a communicator, they ran as singletons."
+    echo "       Check the available PMI plugins with: srun --mpi=list"
+    echo "       then re-submit with SRUN_MPI=<name>."
+    exit 1
+  fi
   unset LD_PRELOAD
 
   if [ "$PROFILER" = "extrae" ]; then

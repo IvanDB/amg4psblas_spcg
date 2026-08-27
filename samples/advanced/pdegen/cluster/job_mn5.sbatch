@@ -50,6 +50,20 @@ if [ "$PROFILER" = "extrae" ] && [ -z "${EXTRAE_HOME:-}" ]; then
   exit 1
 fi
 
+# The binary is linked against the OpenMPI the build job used. Loading a
+# different MPI here produces a PMI mismatch: srun starts N singletons, the
+# run looks normal and then dies of memory. Check before spending a queue slot.
+echo "=== MPI the binary is linked against:"
+if ! ldd "$BIN" | grep -E 'libmpi|libmpi_mpifh|libmpifort'; then
+  echo "ERROR: $BIN does not resolve its MPI library. Loaded modules do not"
+  echo "       match the ones build_mn5.sbatch used."
+  exit 1
+fi
+if ldd "$BIN" | grep -q "not found"; then
+  echo "ERROR: unresolved libraries:"; ldd "$BIN" | grep "not found"
+  exit 1
+fi
+
 mkdir -p results inputs
 NP=$(( SLURM_NNODES * SLURM_NTASKS_PER_NODE ))
 TAG="n${SLURM_NNODES}_p${NP}_${MODE}"

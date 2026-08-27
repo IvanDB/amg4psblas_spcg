@@ -92,3 +92,54 @@ To profile inside the kernel rather than just at MPI boundaries, two options:
   readable in Paraver, and it survives compiler inlining.
 
 Merge happens automatically on exit. Open `trace.prv` in Paraver.
+
+## 5. Scaling campaign
+
+Strong scaling, fixed 64M unknowns, growing node count. The local problem
+shrinks as nodes grow, which is the regime where s-step is supposed to win:
+
+| nodes | ranks | unknowns/rank |
+|-------|-------|---------------|
+| 1     | 112   | 571k          |
+| 2     | 224   | 286k          |
+| 4     | 448   | 143k          |
+| 8     | 896   | 71k           |
+| 16    | 1792  | 36k           |
+
+    for N in 1 2 4 8 16; do sbatch --nodes=$N job_mn5.sbatch; done
+
+gp_debug caps nodes and wall time, so anything past a couple of nodes needs a
+production QOS: `sbatch --nodes=16 --qos=<production> --time=01:00:00 ...`
+
+Collect everything into one table when the jobs land:
+
+    ./collect.sh            # markdown
+    ./collect.sh --tsv      # for gnuplot or a spreadsheet
+
+The number to plot is time per iteration against node count, CG and SSTEPCG on
+the same axes. Where the s-step curve crosses below CG is the result. At one
+node it sits about 13% above: all-reduces are intra-node and cost almost
+nothing, so the method pays its Gram-matrix arithmetic for no saving.
+
+## 6. Tracing strategy
+
+Do not trace every point of the scaling curve. Traces at 1792 ranks are large
+and mostly redundant. Two runs answer the question:
+
+- the smallest node count, where CG wins, and
+- the largest one available, where s-step should.
+
+Comparing the two shows what changed, which is more informative than either
+one alone.
+
+    PROFILER=extrae sbatch --nodes=1  job_mn5.sbatch
+    PROFILER=extrae sbatch --nodes=16 job_mn5.sbatch
+
+If the traces get unwieldy, the knob is `<trace-control>` in extrae.xml, which
+restricts tracing to a window instead of the whole run, including the matrix
+generation that is of no interest here.
+
+What the trace has to confirm, before anything else is read into it: CG issues
+about 3 all-reduces per matrix-vector product, s-step 3 per OUTER iteration,
+so 3 per s of them. At s=5 that is a factor of five. If the counts do not show
+that ratio, the model is wrong and the timings mean nothing.

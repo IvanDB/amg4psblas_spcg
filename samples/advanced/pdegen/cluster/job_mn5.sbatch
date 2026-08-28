@@ -67,8 +67,15 @@ module list
 # Locate the Fortran MPI tracing library. Not every extrae module exports
 # EXTRAE_HOME, so fall back to searching LD_LIBRARY_PATH for the library
 # itself, which is what LD_PRELOAD actually needs.
-EXTRAE_LIB=""
-if [ "$PROFILER" = "extrae" ]; then
+# EXTRAE_LIB can be set explicitly. The module ships one library per MPI
+# flavour and picks the wrong one when it cannot recognise OpenMPI: preloading
+# the Intel MPI build into an OpenMPI program dies with "Attempting to use an
+# MPI routine before initializing MPICH".
+EXTRAE_LIB=${EXTRAE_LIB:-}
+if [ "$PROFILER" = "extrae" ] && [ -n "$EXTRAE_LIB" ]; then
+  [ -f "$EXTRAE_LIB" ] || { echo "ERROR: EXTRAE_LIB=$EXTRAE_LIB does not exist"; exit 1; }
+  echo "=== Extrae library (given): $EXTRAE_LIB"
+elif [ "$PROFILER" = "extrae" ]; then
   for c in "${EXTRAE_HOME:-}/lib" "${EXTRAE_ROOT:-}/lib" ${LD_LIBRARY_PATH//:/ }; do
     [ -n "$c" ] && [ -f "$c/libmpitracef.so" ] && { EXTRAE_LIB="$c/libmpitracef.so"; break; }
   done
@@ -78,7 +85,13 @@ if [ "$PROFILER" = "extrae" ]; then
     echo "       Locate it with: find /apps -name libmpitracef.so 2>/dev/null | head"
     exit 1
   fi
-  echo "=== Extrae library: $EXTRAE_LIB"
+  echo "=== Extrae library (found): $EXTRAE_LIB"
+  case "$EXTRAE_LIB" in
+    *impi*|*intel*|*mpich*)
+      echo "WARNING: that looks like the Intel MPI build, but this binary uses"
+      echo "         OpenMPI. Point EXTRAE_LIB at the openmpi one instead:"
+      echo "         find /apps -name libmpitracef.so | grep -i openmpi" ;;
+  esac
 fi
 
 # The binary is linked against the OpenMPI the build job used. Loading a

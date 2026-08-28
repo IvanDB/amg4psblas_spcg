@@ -6,7 +6,7 @@
 <trace enabled="yes" home="EXTRAE_HOME" initial-mode="detail" type="paraver">
 
   <mpi enabled="yes">
-    <counters enabled="yes" />
+    <counters enabled="no" />
   </mpi>
 
   <!-- Call stack depth recorded for every MPI call. This is what lets Paraver
@@ -27,8 +27,11 @@
     <counters enabled="yes" />
   </user-functions>
 
+  <!-- PAPI is not available on this system: every counter in these sets was
+       rejected at start-up. Left off to keep the output readable; turn the
+       cpu set back on if hardware counters become available. -->
   <counters enabled="yes">
-    <cpu enabled="yes" starting-set-distribution="1">
+    <cpu enabled="no" starting-set-distribution="1">
       <set enabled="yes" domain="all" changeat-time="0">
         PAPI_TOT_INS,PAPI_TOT_CYC,PAPI_L3_TCM
         <sampling enabled="no" period="100000000">PAPI_TOT_CYC</sampling>

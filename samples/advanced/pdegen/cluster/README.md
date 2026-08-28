@@ -104,6 +104,46 @@ Merge happens automatically on exit. Open `trace.prv` in Paraver.
 
 ## 5. Scaling campaign
 
+### Why weak scaling, not strong
+
+Strong scaling at a fixed 64M shrinks the local problem until it fits in
+cache, and that decides the comparison rather than communication does. CG
+reached 83.8x speedup on 32 nodes against an ideal of 32, and the s-step
+penalty, which had been falling steadily from 1.121 to 1.059, jumped back to
+1.312 at that point.
+
+The cause is structural. At 32 nodes each rank holds 17857 unknowns:
+
+| | vectors per rank |
+|---|---|
+| CG, about six vectors | 0.82 MiB |
+| s-step, P V Z Q and a temporary at s=5 | 3.41 MiB |
+| L3 available per core on a 8480+ | about 1.88 MiB |
+
+CG becomes cache resident, s-step cannot, because it carries s times as many
+vectors by construction. Strong scaling therefore walks into the one regime
+that penalises the method under test.
+
+Weak scaling holds unknowns per rank fixed, so the cache behaviour stays put
+while the communicator grows and all-reduce cost rises with log P, which is
+exactly the quantity s-step removes.
+
+    for N in 1 2 4 8 16 32; do WEAK=143000 SWEEPS=1 sbatch --nodes=$N job_mn5.sbatch; done
+
+143000 unknowns per rank is about 20 MiB, clearly outside cache for both
+methods, so the comparison isolates communication:
+
+| nodes | ranks | unknowns | IDIM | total |
+|-------|-------|----------|------|-------|
+| 1     | 112   | 16.0M    | 252  | 2.2 GiB  |
+| 2     | 224   | 32.2M    | 318  | 4.5 GiB  |
+| 4     | 448   | 64.0M    | 400  | 9.0 GiB  |
+| 8     | 896   | 128.0M   | 504  | 17.9 GiB |
+| 16    | 1792  | 256.0M   | 635  | 35.8 GiB |
+| 32    | 3584  | 512.0M   | 800  | 71.7 GiB |
+
+### Strong scaling, for reference
+
 Strong scaling, fixed 64M unknowns, growing node count. The local problem
 shrinks as nodes grow, which is the regime where s-step is supposed to win:
 

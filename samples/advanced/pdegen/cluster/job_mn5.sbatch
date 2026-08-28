@@ -29,6 +29,10 @@ BIN=../runs/amg_d_pde3d                # ONE method per run, chosen by KMETHD in
 MODE=${MODE:-converge}
 PROFILER=${PROFILER:-none}
 IDIM=${IDIM:-}                         # empty: use the size written in the .inp
+WEAK=${WEAK:-}                         # unknowns per rank: derives IDIM from the rank
+                                       # count, keeping the local problem fixed. Strong
+                                       # scaling shrinks it into cache, which favours
+                                       # whichever method holds fewer vectors.
 ITMAX=${ITMAX:-}                       # cap the run in MATRIX-VECTOR PRODUCTS, divided
                                        # by s for the s-step input so both methods do
                                        # the same work. The main lever on trace size.
@@ -92,6 +96,13 @@ fi
 
 mkdir -p results inputs
 NP=$(( SLURM_NNODES * SLURM_NTASKS_PER_NODE ))
+
+# Weak scaling: hold unknowns per rank constant, so IDIM follows the rank count.
+if [ -n "$WEAK" ]; then
+  IDIM=$(awk -v w="$WEAK" -v p="$NP" 'BEGIN{printf "%d", int((w*p)^(1/3) + 0.5)}')
+  echo "=== weak scaling: $WEAK unknowns/rank x $NP ranks -> IDIM $IDIM ($(( IDIM**3 )) unknowns)"
+fi
+
 TAG="n${SLURM_NNODES}_p${NP}_${MODE}"
 [ -n "$IDIM" ]   && TAG="${TAG}_d${IDIM}"
 [ -n "$SWEEPS" ] && TAG="${TAG}_j${SWEEPS}"

@@ -43,6 +43,10 @@ SWEEPS=${SWEEPS:-}                     # empty: use the value in the .inp. Each 
                                        # Jacobi sweep is one more spmm per iteration
                                        # and dilutes the share of all-reduces that
                                        # s-step exists to remove.
+REPS=${REPS:-1}                        # repetitions of each method inside the SAME
+                                       # allocation. Past 8 nodes a single run varies
+                                       # by 15-20% with network contention, so one
+                                       # measurement is not a measurement.
 MPI_DEBUG=${MPI_DEBUG:-0}              # 1: report which PML OpenMPI selected
 SRUN_MPI=${SRUN_MPI:-pmix}             # OpenMPI 5 needs PMIx. Without it srun starts
                                        # N independent singletons instead of one job.
@@ -114,9 +118,9 @@ case "$MODE" in
   *) echo "invalid MODE: $MODE"; exit 1 ;;
 esac
 
-run_one () {                           # $1 = cg | sstep
-  local m=$1
-  local out="results/${m}_${TAG}"
+run_one () {                           # $1 = cg | sstep, $2 = repetition index
+  local m=$1 rep=${2:-}
+  local out="results/${m}_${TAG}${rep:+_r$rep}"
   echo
   echo "=== $m   nodes=$SLURM_NNODES  ranks=$NP  mode=$MODE  profiler=$PROFILER"
 
@@ -198,8 +202,19 @@ run_one () {                           # $1 = cg | sstep
        "${out}.txt" || true
 }
 
-run_one cg
-run_one sstep
+# Alternate the two methods rather than looping each in turn, so a slow patch of
+# the network hits both equally instead of biasing one.
+if [ "$REPS" -le 1 ]; then
+  run_one cg
+  run_one sstep
+else
+  for i in $(seq 1 "$REPS"); do
+    echo
+    echo "########## repetition $i of $REPS"
+    run_one cg    "$i"
+    run_one sstep "$i"
+  done
+fi
 
 echo
 echo "=== DONE ==="

@@ -143,3 +143,39 @@ What the trace has to confirm, before anything else is read into it: CG issues
 about 3 all-reduces per matrix-vector product, s-step 3 per OUTER iteration,
 so 3 per s of them. At s=5 that is a factor of five. If the counts do not show
 that ratio, the model is wrong and the timings mean nothing.
+
+## 7. The heavy traced run
+
+Two things decide whether this succeeds: how big the trace gets, and where it
+lands.
+
+Trace size grows with ranks times MPI calls. At 1792 ranks a full solve is
+around 300 iterations, each with roughly six halo exchanges and three
+all-reduces, and every event carries six levels of call stack. That is tens of
+millions of events. Nothing about the per-iteration pattern needs 300
+iterations to be visible, so cap the run:
+
+    ITMAX=30 counts MATVECS, and is divided by s for the s-step input, so both
+    methods do the same 30 and stay comparable.
+
+Traces must not go to GPFS home, which is quota limited and slow for many
+small writes:
+
+    TRACE_DIR=/gpfs/scratch/<group>/$USER/traces
+
+The run worth tracing, given what the scaling curve showed:
+
+    mkdir -p /gpfs/scratch/<group>/$USER/traces
+    SWEEPS=1 ITMAX=30 MODE=fixed PROFILER=extrae \
+      TRACE_DIR=/gpfs/scratch/<group>/$USER/traces \
+      sbatch --nodes=16 --qos=<production> --time=00:30:00 job_mn5.sbatch
+
+SWEEPS=1 because six Jacobi sweeps bury the all-reduces under six halo
+exchanges; MODE=fixed because equal work makes the two traces comparable
+side by side.
+
+Take the same run at one node as a baseline. The comparison between the two is
+what shows how the communication share moved, which neither trace tells alone.
+
+If the merge fails at high rank count, keep-mpits is on in extrae.xml, so it
+can be redone afterwards on a login node with mpi2prv.

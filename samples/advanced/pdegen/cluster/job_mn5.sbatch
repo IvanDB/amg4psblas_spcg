@@ -64,9 +64,21 @@ if [ "$PROFILER" = "extrae" ]; then
 fi
 module list
 
-if [ "$PROFILER" = "extrae" ] && [ -z "${EXTRAE_HOME:-}" ]; then
-  echo "ERROR: EXTRAE_HOME is not set by the module, cannot locate libmpitracef.so"
-  exit 1
+# Locate the Fortran MPI tracing library. Not every extrae module exports
+# EXTRAE_HOME, so fall back to searching LD_LIBRARY_PATH for the library
+# itself, which is what LD_PRELOAD actually needs.
+EXTRAE_LIB=""
+if [ "$PROFILER" = "extrae" ]; then
+  for c in "${EXTRAE_HOME:-}/lib" "${EXTRAE_ROOT:-}/lib" ${LD_LIBRARY_PATH//:/ }; do
+    [ -n "$c" ] && [ -f "$c/libmpitracef.so" ] && { EXTRAE_LIB="$c/libmpitracef.so"; break; }
+  done
+  if [ -z "$EXTRAE_LIB" ]; then
+    echo "ERROR: libmpitracef.so not found. EXTRAE_HOME=[${EXTRAE_HOME:-unset}]"
+    echo "       Searched EXTRAE_HOME/lib, EXTRAE_ROOT/lib and LD_LIBRARY_PATH."
+    echo "       Locate it with: find /apps -name libmpitracef.so 2>/dev/null | head"
+    exit 1
+  fi
+  echo "=== Extrae library: $EXTRAE_LIB"
 fi
 
 # The binary is linked against the OpenMPI the build job used. Loading a
@@ -149,7 +161,7 @@ run_one () {                           # $1 = cg | sstep, $2 = repetition index
     EXTRAE_DIR=$(cd "$EXTRAE_DIR" && pwd)
     export EXTRAE_DIR EXTRAE_FINAL_DIR="$EXTRAE_DIR"
     # Fortran MPI interposition. No instrumented binary required.
-    export LD_PRELOAD="${EXTRAE_HOME}/lib/libmpitracef.so"
+    export LD_PRELOAD="$EXTRAE_LIB"
   fi
 
   # An IDIM override writes a copy of the input rather than editing it in place.

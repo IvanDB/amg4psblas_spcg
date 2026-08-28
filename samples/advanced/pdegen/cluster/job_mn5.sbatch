@@ -86,8 +86,13 @@ fi
 # Locate a writable scratch directory for the traces. The group name from
 # id -gn is not the scratch path: it is the project group that owns it.
 if [ "$PROFILER" = "extrae" ] && [ -z "$TRACE_DIR" ]; then
-  for c in "${SCRATCH:-}" /gpfs/scratch/*/"$USER"; do
-    [ -n "$c" ] && [ -d "$c" ] && [ -w "$c" ] && { TRACE_DIR="$c/traces"; break; }
+  # The user subdirectory under the group scratch may not exist yet: the group
+  # directory is created for the project, the per-user one is not.
+  for c in "${SCRATCH:-}" /gpfs/scratch/*/"$USER" /gpfs/scratch/*; do
+    [ -n "$c" ] || continue
+    [ -d "$c" ] || continue
+    case "$c" in */"$USER") d="$c" ;; *) d="$c/$USER" ;; esac
+    mkdir -p "$d/traces" 2>/dev/null && [ -w "$d/traces" ] && { TRACE_DIR="$d/traces"; break; }
   done
   if [ -n "$TRACE_DIR" ]; then
     echo "=== traces to $TRACE_DIR"
@@ -133,9 +138,16 @@ run_one () {                           # $1 = cg | sstep, $2 = repetition index
 
   if [ "$PROFILER" = "extrae" ]; then
     export EXTRAE_CONFIG_FILE="$SLURM_SUBMIT_DIR/extrae.xml"
-    export EXTRAE_DIR="${TRACE_DIR:+$TRACE_DIR/}${out##*/}.extrae"
-    [ -n "$TRACE_DIR" ] || EXTRAE_DIR="${out}.extrae"
+    # Extrae needs an ABSOLUTE path here: given a relative one it ignores it and
+    # drops set-0/ in the working directory instead.
+    if [ -n "$TRACE_DIR" ]; then
+      EXTRAE_DIR="$TRACE_DIR/${out##*/}.extrae"
+    else
+      EXTRAE_DIR="$PWD/${out}.extrae"
+    fi
     mkdir -p "$EXTRAE_DIR"
+    EXTRAE_DIR=$(cd "$EXTRAE_DIR" && pwd)
+    export EXTRAE_DIR EXTRAE_FINAL_DIR="$EXTRAE_DIR"
     # Fortran MPI interposition. No instrumented binary required.
     export LD_PRELOAD="${EXTRAE_HOME}/lib/libmpitracef.so"
   fi

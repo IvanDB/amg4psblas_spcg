@@ -39,6 +39,9 @@ ITMAX=${ITMAX:-}                       # cap the run in MATRIX-VECTOR PRODUCTS, 
 TRACE_DIR=${TRACE_DIR:-}               # where Extrae writes. Left empty it looks for
                                        # scratch, since traces are large and GPFS home
                                        # is quota limited and slow for many small files.
+STEPS=${STEPS:-}                       # s, the block size. Reductions fall as 1/s but
+                                       # the Gram work grows as s, so there is an
+                                       # optimum rather than "bigger is better".
 SWEEPS=${SWEEPS:-}                     # empty: use the value in the .inp. Each extra
                                        # Jacobi sweep is one more spmm per iteration
                                        # and dilutes the share of all-reduces that
@@ -144,6 +147,7 @@ TAG="n${SLURM_NNODES}_p${NP}_${MODE}"
 # SSTEP_SYNC is read inside the solver, not here, but it changes what the run
 # measures, so it belongs in the name: otherwise a run with barriers silently
 # overwrites the one without, which is exactly its own baseline.
+[ -n "$STEPS" ]  && TAG="${TAG}_s${STEPS}"
 [ -n "${SSTEP_SYNC:-}" ] && TAG="${TAG}_sync"
 
 case "$MODE" in
@@ -183,22 +187,23 @@ run_one () {                           # $1 = cg | sstep, $2 = repetition index
 
   # An IDIM override writes a copy of the input rather than editing it in place.
   local inp="pde3d_${m}${SUF}.inp"
-  if [ -n "$IDIM" ] || [ -n "$SWEEPS" ] || [ -n "$ITMAX" ]; then
-    local gen="inputs/${m}${SUF}${IDIM:+_d$IDIM}${SWEEPS:+_j$SWEEPS}${ITMAX:+_m$ITMAX}.inp"
+  if [ -n "$IDIM" ] || [ -n "$SWEEPS" ] || [ -n "$ITMAX" ] || [ -n "$STEPS" ]; then
+    local gen="inputs/${m}${SUF}${IDIM:+_d$IDIM}${SWEEPS:+_j$SWEEPS}${ITMAX:+_m$ITMAX}${STEPS:+_s$STEPS}.inp"
     # ITMAX counts outer iterations, each worth s matvecs for the s-step method,
     # so divide there to keep the two runs comparable.
-    local sval; sval=$(awk 'NR==11{print $1}' "$inp")
+    local sval; sval=${STEPS:-$(awk 'NR==11{print $1}' "$inp")}
     local cap="$ITMAX"
     if [ -n "$ITMAX" ] && [ "$m" = "sstep" ]; then
       cap=$(( ITMAX / sval )); [ "$cap" -lt 1 ] && cap=1
     fi
-    awk -v d="$IDIM" -v j="$SWEEPS" -v c="$cap" '
+    awk -v d="$IDIM" -v j="$SWEEPS" -v c="$cap" -v p="$STEPS" '
       NR==3  && d != "" { sub(/^[0-9]+/, d) }
       NR==8  && c != "" { sub(/^[0-9]+/, c) }
+      NR==11 && p != "" { sub(/^[0-9]+/, p) }
       NR==21 && j != "" { sub(/^[0-9]+/, j) }
       { print }' "$inp" > "$gen"
     inp="$gen"
-    echo "    input: $inp   (itmax $(awk 'NR==8{print $1}' "$gen"), sweeps $(awk 'NR==21{print $1}' "$gen"))"
+    echo "    input: $inp   (itmax $(awk 'NR==8{print $1}' "$gen"), s $(awk 'NR==11{print $1}' "$gen"), sweeps $(awk 'NR==21{print $1}' "$gen"))"
   fi
 
   srun --mpi=$SRUN_MPI --ntasks=$NP $BIN "$inp" > "${out}.txt" 2>&1

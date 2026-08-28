@@ -22,6 +22,7 @@ for f in results/*.txt; do
   ranks=$(sed -E 's/.*_p([0-9]+)_.*/\1/'  <<<"$b")
   mode=$(sed -E 's/.*_p[0-9]+_([a-z]+).*/\1/' <<<"$b")
   size=$(sed -E 's/.*_d([0-9]+)(_.*)?$/\1/;t;s/.*/-/' <<<"$b")
+  swp=$(sed -E 's/.*_j([0-9]+)(_.*)?$/\1/;t;s/.*/-/' <<<"$b")
 
   get () { grep -m1 "^$1" "$f" | sed -E 's/.*:[[:space:]]*//' | tr -d ' '; }
   n=$(get "Linear system size")
@@ -31,9 +32,9 @@ for f in results/*.txt; do
   er=$(get "Relative error estimate on exit")
   s=$(get "step size s")
   [ -n "$it" ] || continue
-  printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
-    "$mode" "${size:--}" "$nodes" "$ranks" "$method" "${s:--}" "$it" "$ts" "$ti" "$er"
-done | sort -t$'\t' -k1,1 -k2,2n -k3,3n -k5,5
+  printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+    "$mode" "${size:--}" "${swp:--}" "$nodes" "$ranks" "$method" "${s:--}" "$it" "$ts" "$ti" "$er"
+done | sort -t$'\t' -k1,1 -k2,2n -k3,3n -k4,4n -k6,6
 )
 
 [ -z "$rows" ] && { echo "no results found under results/"; exit 1; }
@@ -42,21 +43,21 @@ done | sort -t$'\t' -k1,1 -k2,2n -k3,3n -k5,5
 # iteration and report how far the slowest run was above it.
 if [ "$fmt" != "--raw" ]; then
   rows=$(echo "$rows" | awk -F'\t' '
-    { k = $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6 "\t" $7
+    { k = $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6 "\t" $7 "\t" $8
       n[k]++
-      if (!(k in mn) || $9+0 < mn[k]) { mn[k] = $9+0; ts[k] = $8; er[k] = $10 }
-      if (!(k in mx) || $9+0 > mx[k]) mx[k] = $9+0 }
+      if (!(k in mn) || $10+0 < mn[k]) { mn[k] = $10+0; ts[k] = $9; er[k] = $11 }
+      if (!(k in mx) || $10+0 > mx[k]) mx[k] = $10+0 }
     END { for (k in n)
             printf "%s\t%d\t%s\t%.5E\t%.1f%%\t%s\n",
                    k, n[k], ts[k], mn[k], (mx[k]/mn[k]-1)*100, er[k] }' \
-    | sort -t$'\t' -k1,1 -k2,2n -k3,3n -k5,5)
+    | sort -t$'\t' -k1,1 -k2,2n -k3,3n -k4,4n -k6,6)
 fi
 
 if [ "$fmt" = "--tsv" ]; then
   if [ "$fmt" = "--raw" ]; then
     printf "mode\tsize\tnodes\tranks\tmethod\ts\titers\tt_solve\tt_iter\trel_err\n"
   else
-    printf "mode\tsize\tnodes\tranks\tmethod\ts\titers\truns\tt_solve\tt_iter_min\tspread\trel_err\n"
+    printf "mode\tsize\tsweeps\tnodes\tranks\tmethod\ts\titers\truns\tt_solve\tt_iter_min\tspread\trel_err\n"
   fi
   echo "$rows"
 elif [ "$fmt" = "--raw" ]; then

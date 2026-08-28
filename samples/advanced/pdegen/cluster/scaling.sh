@@ -25,7 +25,7 @@ col () { awk -F'\t' -v n="$1" '{for(i=1;i<=NF;i++) if($i==n){print i; exit}}' <<
 c_mode=$(col mode); c_size=$(col size); c_nodes=$(col nodes)
 c_ranks=$(col ranks); c_meth=$(col method)
 c_t=$(col t_iter_min); [ -z "$c_t" ] && c_t=$(col t_iter)
-c_er=$(col rel_err); c_it=$(col iters)
+c_er=$(col rel_err); c_it=$(col iters); c_swp=$(col sweeps)
 if [ -z "$c_t" ] || [ -z "$c_nodes" ]; then
   echo "collect.sh gave columns this script does not recognise:"; echo "  $hdr"
   echo "The two are out of step; update both from the repository."; exit 1
@@ -41,6 +41,16 @@ rows=$(tail -n +2 <<<"$tsv" \
 # Two campaigns in results/ get silently merged: this script keys on the node
 # count, so a run at 64M and a weak run at the same node count overwrite each
 # other and produce a row that is half one and half the other. Refuse instead.
+# Different sweep counts are different preconditioners: merging them would
+# compare one configuration against another.
+swmix=$(cut -f8 <<<"$rows" | sort -u | tr '\n' ' ')
+if [ "$(wc -w <<<"$swmix")" -gt 1 ]; then
+  echo "ERROR: results/ holds runs with different smoother sweeps: $swmix"
+  echo "       Those are different preconditioners. Select one, for example:"
+  echo "         mkdir -p results/j1 && mv results/*_j1_*.txt results/j1/"
+  exit 1
+fi
+
 mixed=$(cut -f3 <<<"$rows" | sort -u | tr '\n' ' ')
 if grep -q -- '-' <<<"$mixed" && grep -qE '[0-9]' <<<"$mixed"; then
   echo "ERROR: results/ holds runs with a fixed size and runs with IDIM set:"

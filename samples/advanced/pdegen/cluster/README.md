@@ -1,7 +1,16 @@
 # s-step CG measurements on MareNostrum 5
 
-Account `ehpc859`, QOS `gp_debug`. Adjust in both scripts if you move to a
-production QOS with longer wall time.
+Account `ehpc859`. Available QOS:
+
+| QOS              | max time   | max procs | nodes | note                  |
+|------------------|------------|-----------|-------|-----------------------|
+| `gp_debug`       | 02:00:00   | 3584      | 32    | set in both scripts   |
+| `gp_ehpc`        | 3-00:00:00 | 89600     | 800   | default, production   |
+| `gp_interactive` | 02:00:00   | 32        | -     | login nodes only      |
+
+gp_debug reaches 32 nodes, which covers the whole scaling grid below, and
+usually schedules sooner. gp_ehpc is the default and is there for anything
+longer or wider.
 
 ## 1. Build
 
@@ -161,7 +170,10 @@ iterations to be visible, so cap the run:
 Traces must not go to GPFS home, which is quota limited and slow for many
 small writes:
 
-    TRACE_DIR=/gpfs/scratch/<group>/$USER/traces
+    TRACE_DIR=<your scratch>/traces
+
+Find your scratch with `bsc_quota`, which lists the filesystems and their
+paths. Left unset, the job looks for one itself.
 
 The run worth tracing, given what the scaling curve showed:
 

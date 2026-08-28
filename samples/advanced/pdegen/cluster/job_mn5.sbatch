@@ -29,6 +29,11 @@ BIN=../runs/amg_d_pde3d                # ONE method per run, chosen by KMETHD in
 MODE=${MODE:-converge}
 PROFILER=${PROFILER:-none}
 IDIM=${IDIM:-}                         # empty: use the size written in the .inp
+ITMAX=${ITMAX:-}                       # cap the run in MATRIX-VECTOR PRODUCTS, divided
+                                       # by s for the s-step input so both methods do
+                                       # the same work. The main lever on trace size.
+TRACE_DIR=${TRACE_DIR:-}               # where Extrae writes. Point it at scratch:
+                                       # traces are large and GPFS home has a quota.
 SWEEPS=${SWEEPS:-}                     # empty: use the value in the .inp. Each extra
                                        # Jacobi sweep is one more spmm per iteration
                                        # and dilutes the share of all-reduces that
@@ -74,6 +79,7 @@ NP=$(( SLURM_NNODES * SLURM_NTASKS_PER_NODE ))
 TAG="n${SLURM_NNODES}_p${NP}_${MODE}"
 [ -n "$IDIM" ]   && TAG="${TAG}_d${IDIM}"
 [ -n "$SWEEPS" ] && TAG="${TAG}_j${SWEEPS}"
+[ -n "$ITMAX" ]  && TAG="${TAG}_m${ITMAX}"
 
 case "$MODE" in
   converge) SUF="" ;;
@@ -96,7 +102,8 @@ run_one () {                           # $1 = cg | sstep
 
   if [ "$PROFILER" = "extrae" ]; then
     export EXTRAE_CONFIG_FILE="$SLURM_SUBMIT_DIR/extrae.xml"
-    export EXTRAE_DIR="${out}.extrae"
+    export EXTRAE_DIR="${TRACE_DIR:+$TRACE_DIR/}${out##*/}.extrae"
+    [ -n "$TRACE_DIR" ] || EXTRAE_DIR="${out}.extrae"
     mkdir -p "$EXTRAE_DIR"
     # Fortran MPI interposition. No instrumented binary required.
     export LD_PRELOAD="${EXTRAE_HOME}/lib/libmpitracef.so"
@@ -104,13 +111,22 @@ run_one () {                           # $1 = cg | sstep
 
   # An IDIM override writes a copy of the input rather than editing it in place.
   local inp="pde3d_${m}${SUF}.inp"
-  if [ -n "$IDIM" ] || [ -n "$SWEEPS" ]; then
-    local gen="inputs/${m}${SUF}${IDIM:+_d$IDIM}${SWEEPS:+_j$SWEEPS}.inp"
-    awk -v d="$IDIM" -v j="$SWEEPS" '
+  if [ -n "$IDIM" ] || [ -n "$SWEEPS" ] || [ -n "$ITMAX" ]; then
+    local gen="inputs/${m}${SUF}${IDIM:+_d$IDIM}${SWEEPS:+_j$SWEEPS}${ITMAX:+_m$ITMAX}.inp"
+    # ITMAX counts outer iterations, each worth s matvecs for the s-step method,
+    # so divide there to keep the two runs comparable.
+    local sval; sval=$(awk 'NR==11{print $1}' "$inp")
+    local cap="$ITMAX"
+    if [ -n "$ITMAX" ] && [ "$m" = "sstep" ]; then
+      cap=$(( ITMAX / sval )); [ "$cap" -lt 1 ] && cap=1
+    fi
+    awk -v d="$IDIM" -v j="$SWEEPS" -v c="$cap" '
       NR==3  && d != "" { sub(/^[0-9]+/, d) }
+      NR==8  && c != "" { sub(/^[0-9]+/, c) }
       NR==21 && j != "" { sub(/^[0-9]+/, j) }
       { print }' "$inp" > "$gen"
     inp="$gen"
+    echo "    input: $inp   (itmax $(awk 'NR==8{print $1}' "$gen"), sweeps $(awk 'NR==21{print $1}' "$gen"))"
   fi
 
   srun --mpi=$SRUN_MPI --ntasks=$NP $BIN "$inp" > "${out}.txt" 2>&1
@@ -144,6 +160,11 @@ run_one () {                           # $1 = cg | sstep
     # Extrae merges into trace.prv on exit when <merge enabled="yes">.
     mv -f trace.prv trace.pcf trace.row "$EXTRAE_DIR"/ 2>/dev/null || true
     echo "--- trace in $EXTRAE_DIR"
+    du -sh "$EXTRAE_DIR" 2>/dev/null
+    if [ ! -s "$EXTRAE_DIR/trace.prv" ]; then
+      echo "    WARNING: no trace.prv. The merge may have failed; the .mpits are kept,"
+      echo "             so it can be redone offline with mpi2prv."
+    fi
   fi
 
   grep -E "Krylov method|step size|Iterations to convergence|Time to solve|Time per iteration|Residual 2-norm|Linear system size" \

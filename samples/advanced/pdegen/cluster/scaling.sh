@@ -36,6 +36,20 @@ rows=$(tail -n +2 <<<"$tsv" \
              '$m==w {print $n"\t"$r"\t"$z"\t"$e"\t"$t}')
 [ -z "$rows" ] && { echo "no results for mode '$want'"; exit 1; }
 
+# Two campaigns in results/ get silently merged: this script keys on the node
+# count, so a run at 64M and a weak run at the same node count overwrite each
+# other and produce a row that is half one and half the other. Refuse instead.
+mixed=$(cut -f3 <<<"$rows" | sort -u | tr '\n' ' ')
+if grep -q -- '-' <<<"$mixed" && grep -qE '[0-9]' <<<"$mixed"; then
+  echo "ERROR: results/ holds runs with a fixed size and runs with IDIM set:"
+  echo "         sizes present: $mixed"
+  echo "       These are different campaigns and cannot go in one table."
+  echo "       Move the ones without _d in the name aside, for example:"
+  echo "         mkdir -p results/old"
+  echo "         for f in results/*.txt; do case \"\$f\" in *_d*) ;; *) mv \"\$f\" results/old/ ;; esac; done"
+  exit 1
+fi
+
 echo "$rows" | sort -k1,1n -k4,4 | awk -F'\t' '
   { nodes=$1; ranks=$2; size=$3; meth=$4; t=$5+0
     key=nodes; N[key]=nodes; R[key]=ranks; S[key]=size

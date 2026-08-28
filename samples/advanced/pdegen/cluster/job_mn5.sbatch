@@ -32,8 +32,9 @@ IDIM=${IDIM:-}                         # empty: use the size written in the .inp
 ITMAX=${ITMAX:-}                       # cap the run in MATRIX-VECTOR PRODUCTS, divided
                                        # by s for the s-step input so both methods do
                                        # the same work. The main lever on trace size.
-TRACE_DIR=${TRACE_DIR:-}               # where Extrae writes. Point it at scratch:
-                                       # traces are large and GPFS home has a quota.
+TRACE_DIR=${TRACE_DIR:-}               # where Extrae writes. Left empty it looks for
+                                       # scratch, since traces are large and GPFS home
+                                       # is quota limited and slow for many small files.
 SWEEPS=${SWEEPS:-}                     # empty: use the value in the .inp. Each extra
                                        # Jacobi sweep is one more spmm per iteration
                                        # and dilutes the share of all-reduces that
@@ -73,6 +74,21 @@ if ldd "$BIN" | grep -q "not found"; then
   echo "ERROR: unresolved libraries:"; ldd "$BIN" | grep "not found"
   exit 1
 fi
+
+# Locate a writable scratch directory for the traces. The group name from
+# id -gn is not the scratch path: it is the project group that owns it.
+if [ "$PROFILER" = "extrae" ] && [ -z "$TRACE_DIR" ]; then
+  for c in "${SCRATCH:-}" /gpfs/scratch/*/"$USER"; do
+    [ -n "$c" ] && [ -d "$c" ] && [ -w "$c" ] && { TRACE_DIR="$c/traces"; break; }
+  done
+  if [ -n "$TRACE_DIR" ]; then
+    echo "=== traces to $TRACE_DIR"
+  else
+    echo "WARNING: no writable scratch found, traces go under results/ in GPFS home."
+    echo "         Find yours with: ls -d /gpfs/scratch/*/\$USER   then set TRACE_DIR."
+  fi
+fi
+[ -n "$TRACE_DIR" ] && mkdir -p "$TRACE_DIR"
 
 mkdir -p results inputs
 NP=$(( SLURM_NNODES * SLURM_NTASKS_PER_NODE ))

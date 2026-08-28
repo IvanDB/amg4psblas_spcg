@@ -34,8 +34,8 @@ fi
 rows=$(tail -n +2 <<<"$tsv" \
        | awk -F'\t' -v w="$want" -v m=$c_mode -v n=$c_nodes -v r=$c_ranks \
              -v z=$c_size -v e=$c_meth -v t=$c_t \
-             -v x=$c_er -v i=$c_it \
-             '$m==w {print $n"\t"$r"\t"$z"\t"$e"\t"$t"\t"$x"\t"$i}')
+             -v x=$c_er -v i=$c_it -v j=${c_swp:-0} \
+             '$m==w {print $n"\t"$r"\t"$z"\t"$e"\t"$t"\t"$x"\t"$i"\t"(j>0?$j:"-")}')
 [ -z "$rows" ] && { echo "no results for mode '$want'"; exit 1; }
 
 # Two campaigns in results/ get silently merged: this script keys on the node

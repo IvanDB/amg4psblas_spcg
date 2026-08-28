@@ -141,6 +141,10 @@ TAG="n${SLURM_NNODES}_p${NP}_${MODE}"
 [ -n "$IDIM" ]   && TAG="${TAG}_d${IDIM}"
 [ -n "$SWEEPS" ] && TAG="${TAG}_j${SWEEPS}"
 [ -n "$ITMAX" ]  && TAG="${TAG}_m${ITMAX}"
+# SSTEP_SYNC is read inside the solver, not here, but it changes what the run
+# measures, so it belongs in the name: otherwise a run with barriers silently
+# overwrites the one without, which is exactly its own baseline.
+[ -n "${SSTEP_SYNC:-}" ] && TAG="${TAG}_sync"
 
 case "$MODE" in
   converge) SUF="" ;;

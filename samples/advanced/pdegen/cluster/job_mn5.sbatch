@@ -29,6 +29,10 @@ BIN=../runs/amg_d_pde3d                # ONE method per run, chosen by KMETHD in
 MODE=${MODE:-converge}
 PROFILER=${PROFILER:-none}
 IDIM=${IDIM:-}                         # empty: use the size written in the .inp
+SWEEPS=${SWEEPS:-}                     # empty: use the value in the .inp. Each extra
+                                       # Jacobi sweep is one more spmm per iteration
+                                       # and dilutes the share of all-reduces that
+                                       # s-step exists to remove.
 MPI_DEBUG=${MPI_DEBUG:-0}              # 1: report which PML OpenMPI selected
 SRUN_MPI=${SRUN_MPI:-pmix}             # OpenMPI 5 needs PMIx. Without it srun starts
                                        # N independent singletons instead of one job.
@@ -68,7 +72,8 @@ fi
 mkdir -p results inputs
 NP=$(( SLURM_NNODES * SLURM_NTASKS_PER_NODE ))
 TAG="n${SLURM_NNODES}_p${NP}_${MODE}"
-[ -n "$IDIM" ] && TAG="${TAG}_d${IDIM}"
+[ -n "$IDIM" ]   && TAG="${TAG}_d${IDIM}"
+[ -n "$SWEEPS" ] && TAG="${TAG}_j${SWEEPS}"
 
 case "$MODE" in
   converge) SUF="" ;;
@@ -99,9 +104,12 @@ run_one () {                           # $1 = cg | sstep
 
   # An IDIM override writes a copy of the input rather than editing it in place.
   local inp="pde3d_${m}${SUF}.inp"
-  if [ -n "$IDIM" ]; then
-    local gen="inputs/${m}${SUF}_d${IDIM}.inp"
-    awk -v d="$IDIM" 'NR==3{sub(/^[0-9]+/, d)} {print}' "$inp" > "$gen"
+  if [ -n "$IDIM" ] || [ -n "$SWEEPS" ]; then
+    local gen="inputs/${m}${SUF}${IDIM:+_d$IDIM}${SWEEPS:+_j$SWEEPS}.inp"
+    awk -v d="$IDIM" -v j="$SWEEPS" '
+      NR==3  && d != "" { sub(/^[0-9]+/, d) }
+      NR==21 && j != "" { sub(/^[0-9]+/, j) }
+      { print }' "$inp" > "$gen"
     inp="$gen"
   fi
 

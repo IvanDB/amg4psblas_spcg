@@ -733,7 +733,17 @@ program amg_d_pde3d_sstepbatch
     write(psb_out_unit, '("Storage format for DESC_A           : ", a  )')    desc_a%get_fmt()
   end if
 
-  ! call psb_print_timers(ctxt)
+  !
+  ! Per-phase breakdown of the sparse product, when PSB_SPMM_TIMERS asked
+  ! for it: "noand exch" is the halo exchange, "noand cmp" the local
+  ! product. Their ratio is what decides whether overlapping or deepening
+  ! the halo is worth anything.
+  !
+  block
+    character(len=16) :: tmr_env
+    call get_environment_variable('PSB_SPMM_TIMERS', tmr_env)
+    if ((len_trim(tmr_env) > 0) .and. (tmr_env(1:1) /= '0')) call psb_print_timers(ctxt)
+  end block
 
   !
   !  cleanup storage and exit

@@ -50,6 +50,15 @@ REPS=${REPS:-1}                        # repetitions of each method inside the S
                                        # allocation. Past 8 nodes a single run varies
                                        # by 15-20% with network contention, so one
                                        # measurement is not a measurement.
+PSB_SPMM_TIMERS=${PSB_SPMM_TIMERS:-}   # 1: break the sparse product into halo
+                                       # exchange and local computation. Their
+                                       # ratio decides whether overlapping or
+                                       # deepening the halo is worth anything.
+PSB_SPMM_BARRIER=${PSB_SPMM_BARRIER:-} # 1: barrier in front of each phase, so
+                                       # imbalance is charged to the barrier and
+                                       # not to the exchange behind it. Perturbs
+                                       # the run: use it to attribute, not to time.
+export PSB_SPMM_TIMERS PSB_SPMM_BARRIER
 MPI_DEBUG=${MPI_DEBUG:-0}              # 1: report which PML OpenMPI selected
 SRUN_MPI=${SRUN_MPI:-pmix}             # OpenMPI 5 needs PMIx. Without it srun starts
                                        # N independent singletons instead of one job.
@@ -149,6 +158,11 @@ TAG="n${SLURM_NNODES}_p${NP}_${MODE}"
 # overwrites the one without, which is exactly its own baseline.
 [ -n "$STEPS" ]  && TAG="${TAG}_s${STEPS}"
 [ -n "${SSTEP_SYNC:-}" ] && TAG="${TAG}_sync"
+# The halo/compute split of the sparse product. It changes nothing about the
+# arithmetic, but it does add timing calls inside every matvec, so a timed run
+# is not the run to quote a solve time from: keep it under its own name.
+[ -n "${PSB_SPMM_TIMERS:-}" ] && TAG="${TAG}_spmm"
+[ -n "${PSB_SPMM_BARRIER:-}" ] && TAG="${TAG}_bar"
 
 case "$MODE" in
   converge) SUF="" ;;

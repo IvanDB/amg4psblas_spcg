@@ -101,7 +101,7 @@ module amg_s_prec_type
     ! The multilevel hierarchy
     !
     type(amg_s_onelev_type), allocatable :: precv(:)
-    integer(psb_ipk_)                    :: nlevs
+    integer(psb_ipk_)                    :: nlevs = 0
   contains
     procedure, pass(prec) :: psb_s_apply2_mvect_col => amg_s_apply2_mvect_col
     procedure, pass(prec) :: psb_s_apply1_mvect_col => amg_s_apply1_mvect_col

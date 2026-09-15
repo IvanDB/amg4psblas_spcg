@@ -35,26 +35,28 @@
 !    POSSIBILITY OF SUCH DAMAGE.
 !   
 !  
-subroutine amg_c_base_onelev_free_smoothers(lv,info)
-  
+submodule (amg_c_onelev_mod)  amg_c_base_onelev_dree_smoothers_impl
   use psb_base_mod
-  use amg_c_onelev_mod, amg_protect_name =>  amg_c_base_onelev_free_smoothers
-  implicit none 
+  
+contains
+  module subroutine amg_c_base_onelev_free_smoothers(lv,info)
+    implicit none 
 
-  class(amg_c_onelev_type), intent(inout) :: lv
-  integer(psb_ipk_), intent(out)          :: info
-  integer(psb_ipk_) :: i
+    class(amg_c_onelev_type), intent(inout) :: lv
+    integer(psb_ipk_), intent(out)          :: info
+    integer(psb_ipk_) :: i
 
-  info = psb_success_
+    info = psb_success_
 
-  ! We might just deallocate the top level array, except 
-  ! that there may be inner objects containing C pointers,
-  ! e.g.  UMFPACK, SLU or CUDA stuff.
-  ! We really need FINALs. 
-  if (allocated(lv%sm)) &
-       & call lv%sm%free(info)
+    ! We might just deallocate the top level array, except 
+    ! that there may be inner objects containing C pointers,
+    ! e.g.  UMFPACK, SLU or CUDA stuff.
+    ! We really need FINALs. 
+    if (allocated(lv%sm)) &
+         & call lv%sm%free(info)
 
-  if (allocated(lv%sm2a)) &
-       & call lv%sm2a%free(info)
+    if (allocated(lv%sm2a)) &
+         & call lv%sm2a%free(info)
 
-end subroutine amg_c_base_onelev_free_smoothers
+  end subroutine amg_c_base_onelev_free_smoothers
+end submodule amg_c_base_onelev_dree_smoothers_impl

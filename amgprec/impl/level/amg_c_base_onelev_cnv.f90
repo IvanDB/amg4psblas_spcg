@@ -35,33 +35,36 @@
 !    POSSIBILITY OF SUCH DAMAGE.
 !   
 !  
-subroutine amg_c_base_onelev_cnv(lv,info,amold,vmold,imold)
-  
+submodule (amg_c_onelev_mod)  amg_c_base_onelev_cnv_impl
   use psb_base_mod
-  use amg_c_onelev_mod, amg_protect_name =>  amg_c_base_onelev_cnv
-  implicit none 
-
-  class(amg_c_onelev_type), intent(inout) :: lv
-  integer(psb_ipk_), intent(out)          :: info
-  class(psb_c_base_sparse_mat), intent(in), optional :: amold
-  class(psb_c_base_vect_type), intent(in), optional  :: vmold
-  class(psb_i_base_vect_type), intent(in), optional  :: imold
-
-  integer(psb_ipk_) :: i
-
-  info = psb_success_
   
-  if (any((/present(amold),present(vmold),present(imold)/))) then 
-    if (allocated(lv%sm)) &
-         & call lv%sm%cnv(info,amold=amold,vmold=vmold,imold=imold)
-    if (info == psb_success_ .and. allocated(lv%sm2a)) &
-         & call lv%sm2a%cnv(info,amold=amold,vmold=vmold,imold=imold)
-    if (info == psb_success_ .and. allocated(lv%wrk)) &
-         & call lv%wrk%cnv(info,vmold=vmold)
-    if (info == psb_success_.and. lv%ac%is_asb()) &
-         & call lv%ac%cscnv(info,mold=amold)
-    if (info == psb_success_ .and. lv%desc_ac%is_ok() &
-         & .and. present(imold)) call lv%desc_ac%cnv(imold)
-    if (info == psb_success_) call lv%linmap%cnv(info,mold=amold,imold=imold)
-  end if
-end subroutine amg_c_base_onelev_cnv
+contains
+  module subroutine amg_c_base_onelev_cnv(lv,info,amold,vmold,imold)
+
+    implicit none 
+
+    class(amg_c_onelev_type), intent(inout) :: lv
+    integer(psb_ipk_), intent(out)          :: info
+    class(psb_c_base_sparse_mat), intent(in), optional :: amold
+    class(psb_c_base_vect_type), intent(in), optional  :: vmold
+    class(psb_i_base_vect_type), intent(in), optional  :: imold
+
+    integer(psb_ipk_) :: i
+
+    info = psb_success_
+
+    if (any((/present(amold),present(vmold),present(imold)/))) then 
+      if (allocated(lv%sm)) &
+           & call lv%sm%cnv(info,amold=amold,vmold=vmold,imold=imold)
+      if (info == psb_success_ .and. allocated(lv%sm2a)) &
+           & call lv%sm2a%cnv(info,amold=amold,vmold=vmold,imold=imold)
+      if (info == psb_success_ .and. allocated(lv%wrk)) &
+           & call lv%wrk%cnv(info,vmold=vmold)
+      if (info == psb_success_.and. lv%ac%is_asb()) &
+           & call lv%ac%cscnv(info,mold=amold)
+      if (info == psb_success_ .and. lv%desc_ac%is_ok() &
+           & .and. present(imold)) call lv%desc_ac%cnv(imold)
+      if (info == psb_success_) call lv%linmap%cnv(info,mold=amold,imold=imold)
+    end if
+  end subroutine amg_c_base_onelev_cnv
+end submodule amg_c_base_onelev_cnv_impl

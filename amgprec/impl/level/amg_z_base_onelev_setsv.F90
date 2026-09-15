@@ -35,110 +35,111 @@
 !    POSSIBILITY OF SUCH DAMAGE.
 !   
 !  
-subroutine amg_z_base_onelev_setsv(lev,val,info,pos)
-
+submodule (amg_z_onelev_mod)  amg_z_base_onelev_setsv_impl
   use psb_base_mod
-  use amg_z_prec_mod, amg_protect_name => amg_z_base_onelev_setsv
-
-  implicit none
-
-  ! Arguments
-  class(amg_z_onelev_type), target, intent(inout) :: lev
-  class(amg_z_base_solver_type), intent(in)       :: val
-  integer(psb_ipk_), intent(out)                  :: info
-  character(len=*), optional, intent(in)          :: pos
   
-  ! Local variables
-  integer(psb_ipk_)                :: ipos_
-  character(len=*), parameter      :: name='amg_base_onelev_setsv'
+contains
+  module subroutine amg_z_base_onelev_setsv(lv,val,info,pos)
+    implicit none
 
-  info = psb_success_
+    ! Arguments
+    class(amg_z_onelev_type), target, intent(inout) :: lv
+    class(amg_z_base_solver_type), intent(in)       :: val
+    integer(psb_ipk_), intent(out)                  :: info
+    character(len=*), optional, intent(in)          :: pos
 
-  if (present(pos)) then
-    select case(psb_toupper(trim(pos)))
-    case('PRE')
-      ipos_ = amg_smooth_pre_
-    case('POST')
-      ipos_ = amg_smooth_post_
-    case default
+    ! Local variables
+    integer(psb_ipk_)                :: ipos_
+    character(len=*), parameter      :: name='amg_base_onelev_setsv'
+
+    info = psb_success_
+
+    if (present(pos)) then
+      select case(psb_toupper(trim(pos)))
+      case('PRE')
+        ipos_ = amg_smooth_pre_
+      case('POST')
+        ipos_ = amg_smooth_post_
+      case default
+        ipos_ = amg_smooth_both_
+      end select
+    else
       ipos_ = amg_smooth_both_
-    end select
-  else
-    ipos_ = amg_smooth_both_
-  end if
-  
-  if ((ipos_ == amg_smooth_pre_).or.(ipos_ == amg_smooth_both_)) then 
-    if (allocated(lev%sm)) then 
-      if (allocated(lev%sm%sv)) then
-        if (.not.same_type_as(lev%sm%sv,val))  then
-          call lev%sm%sv%free(info)
-          if (info == 0) deallocate(lev%sm%sv,stat=info)
+    end if
+
+    if ((ipos_ == amg_smooth_pre_).or.(ipos_ == amg_smooth_both_)) then 
+      if (allocated(lv%sm)) then 
+        if (allocated(lv%sm%sv)) then
+          if (.not.same_type_as(lv%sm%sv,val))  then
+            call lv%sm%sv%free(info)
+            if (info == 0) deallocate(lv%sm%sv,stat=info)
+            if (info /= 0) then
+              info = 3111
+              return
+            end if
+          end if
+        end if
+
+        if (.not.allocated(lv%sm%sv)) then 
+          allocate(lv%sm%sv,mold=val,stat=info) 
           if (info /= 0) then
             info = 3111
             return
           end if
         end if
+        call lv%sm%sv%default()
+      else
+        info = 3111
+        write(psb_err_unit,*) name,&
+             &': Error: uninitialized preconditioner component,',&
+             &' should call amg_PRECINIT/amg_PRECSET' 
+        return 
+
       end if
-      
-      if (.not.allocated(lev%sm%sv)) then 
-        allocate(lev%sm%sv,mold=val,stat=info) 
-        if (info /= 0) then
-          info = 3111
-          return
-        end if
-      end if
-      call lev%sm%sv%default()
-    else
-      info = 3111
-      write(psb_err_unit,*) name,&
-           &': Error: uninitialized preconditioner component,',&
-           &' should call amg_PRECINIT/amg_PRECSET' 
-      return 
-      
     end if
-  end if
 
-  !
-  ! If POS was not specified and therefore we have amg_smooth_both_
-  ! we need to update sm2a *only* if it was already allocated,
-  ! otherwise it is not needed (since we have just fixed %sm in the
-  ! pre section). 
-  !
+    !
+    ! If POS was not specified and therefore we have amg_smooth_both_
+    ! we need to update sm2a *only* if it was already allocated,
+    ! otherwise it is not needed (since we have just fixed %sm in the
+    ! pre section). 
+    !
 
-  if ((ipos_ == amg_smooth_post_).or. &
-       ((ipos_ == amg_smooth_both_).and.(allocated(lev%sm2a)))) then 
+    if ((ipos_ == amg_smooth_post_).or. &
+         ((ipos_ == amg_smooth_both_).and.(allocated(lv%sm2a)))) then 
 
 
-    if (allocated(lev%sm2a)) then 
-      if (allocated(lev%sm2a%sv)) then
-        if (.not.same_type_as(lev%sm2a%sv,val))  then
-          call lev%sm2a%sv%free(info)
-          if (info == 0) deallocate(lev%sm2a%sv,stat=info)
+      if (allocated(lv%sm2a)) then 
+        if (allocated(lv%sm2a%sv)) then
+          if (.not.same_type_as(lv%sm2a%sv,val))  then
+            call lv%sm2a%sv%free(info)
+            if (info == 0) deallocate(lv%sm2a%sv,stat=info)
+            if (info /= 0) then
+              info = 3111
+              return
+            end if
+          end if
+        end if
+        if (.not.allocated(lv%sm2a%sv)) then 
+          allocate(lv%sm2a%sv,mold=val,stat=info) 
           if (info /= 0) then
             info = 3111
             return
           end if
         end if
-      end if
-      if (.not.allocated(lev%sm2a%sv)) then 
-        allocate(lev%sm2a%sv,mold=val,stat=info) 
-        if (info /= 0) then
-          info = 3111
-          return
-        end if
-      end if
-      call lev%sm2a%sv%default()
-      
-    else
-      info = 3111
-      write(psb_err_unit,*) name,&
-           &': Error: uninitialized preconditioner component,',&
-           &' should call amg_PRECINIT/amg_PRECSET' 
-      return 
-      
-    end if
-    
-  end if
-  
-end subroutine amg_z_base_onelev_setsv
+        call lv%sm2a%sv%default()
 
+      else
+        info = 3111
+        write(psb_err_unit,*) name,&
+             &': Error: uninitialized preconditioner component,',&
+             &' should call amg_PRECINIT/amg_PRECSET' 
+        return 
+
+      end if
+
+    end if
+
+  end subroutine amg_z_base_onelev_setsv
+
+end submodule amg_z_base_onelev_setsv_impl

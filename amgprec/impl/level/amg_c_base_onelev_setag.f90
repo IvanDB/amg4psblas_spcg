@@ -35,48 +35,50 @@
 !    POSSIBILITY OF SUCH DAMAGE.
 !   
 !  
-subroutine amg_c_base_onelev_setag(lv,val,info,pos)
-
+submodule (amg_c_onelev_mod)  amg_c_base_onelev_setag_impl
   use psb_base_mod
-  use amg_c_onelev_mod, amg_protect_name => amg_c_base_onelev_setag
-
-  implicit none
-
-  ! Arguments
-  class(amg_c_onelev_type), target, intent(inout) :: lv
-  class(amg_c_base_aggregator_type), intent(in)   :: val
-  integer(psb_ipk_), intent(out)                  :: info
-  character(len=*), optional, intent(in)          :: pos
   
-  ! Local variables
-  integer(psb_ipk_)                :: ipos_
-  character(len=*), parameter      :: name='amg_base_onelev_setag'
+contains
+  module subroutine amg_c_base_onelev_setag(lv,val,info,pos)
 
-  info = psb_success_
+    implicit none
 
-  ! Ignore pos for aggregator
-  
-  if (allocated(lv%aggr)) then 
-    if (.not.same_type_as(lv%aggr,val))  then
-      call lv%aggr%free(info)
-      deallocate(lv%aggr,stat=info)
+    ! Arguments
+    class(amg_c_onelev_type), target, intent(inout) :: lv
+    class(amg_c_base_aggregator_type), intent(in)   :: val
+    integer(psb_ipk_), intent(out)                  :: info
+    character(len=*), optional, intent(in)          :: pos
+
+    ! Local variables
+    integer(psb_ipk_)                :: ipos_
+    character(len=*), parameter      :: name='amg_base_onelev_setag'
+
+    info = psb_success_
+
+    ! Ignore pos for aggregator
+
+    if (allocated(lv%aggr)) then 
+      if (.not.same_type_as(lv%aggr,val))  then
+        call lv%aggr%free(info)
+        deallocate(lv%aggr,stat=info)
+        if (info /= 0) then
+          info = 3111
+          return
+        end if
+      end if
+    end if
+
+    if (.not.allocated(lv%aggr)) then 
+      allocate(lv%aggr,mold=val,stat=info) 
       if (info /= 0) then
         info = 3111
         return
       end if
+      lv%parms%par_aggr_alg  = amg_ext_aggr_
+      lv%parms%aggr_type     = amg_noalg_
+      call lv%aggr%default()
     end if
-  end if
-      
-  if (.not.allocated(lv%aggr)) then 
-    allocate(lv%aggr,mold=val,stat=info) 
-    if (info /= 0) then
-      info = 3111
-      return
-    end if
-    lv%parms%par_aggr_alg  = amg_ext_aggr_
-    lv%parms%aggr_type     = amg_noalg_
-    call lv%aggr%default()
-  end if
-  
-end subroutine amg_c_base_onelev_setag
 
+  end subroutine amg_c_base_onelev_setag
+
+end submodule amg_c_base_onelev_setag_impl

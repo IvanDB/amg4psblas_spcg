@@ -35,71 +35,73 @@
 !    POSSIBILITY OF SUCH DAMAGE.
 !   
 !  
-subroutine amg_z_base_onelev_csetr(lv,what,val,info,pos,idx)
-  
+submodule (amg_z_onelev_mod)  amg_z_base_onelev_csetr_impl
   use psb_base_mod
-  use amg_z_onelev_mod, amg_protect_name => amg_z_base_onelev_csetr
+  
+contains
+  module subroutine amg_z_base_onelev_csetr(lv,what,val,info,pos,idx)
 
-  Implicit None
+    Implicit None
 
-  ! Arguments
-  class(amg_z_onelev_type), intent(inout) :: lv 
-  character(len=*), intent(in)              :: what 
-  real(psb_dpk_), intent(in)                 :: val
-  integer(psb_ipk_), intent(out)            :: info
-  character(len=*), optional, intent(in)    :: pos
-  integer(psb_ipk_), intent(in), optional   :: idx
-  ! Local 
-  integer(psb_ipk_)  :: ipos_, err_act
-  character(len=20) :: name='z_base_onelev_csetr'
+    ! Arguments
+    class(amg_z_onelev_type), intent(inout) :: lv 
+    character(len=*), intent(in)              :: what 
+    real(psb_dpk_), intent(in)                 :: val
+    integer(psb_ipk_), intent(out)            :: info
+    character(len=*), optional, intent(in)    :: pos
+    integer(psb_ipk_), intent(in), optional   :: idx
+    ! Local 
+    integer(psb_ipk_)  :: ipos_, err_act
+    character(len=20) :: name='z_base_onelev_csetr'
 
-  call psb_erractionsave(err_act)
+    call psb_erractionsave(err_act)
 
 
-  info = psb_success_
+    info = psb_success_
 
-  select case (psb_toupper(what))
+    select case (psb_toupper(what))
 
-  case ('AGGR_OMEGA_VAL')
-    lv%parms%aggr_omega_val= val
+    case ('AGGR_OMEGA_VAL')
+      lv%parms%aggr_omega_val= val
 
-  case ('AGGR_THRESH')
-    lv%parms%aggr_thresh   = val
+    case ('AGGR_THRESH')
+      lv%parms%aggr_thresh   = val
 
-  case default
-    
-    if (present(pos)) then
-      select case(psb_toupper(trim(pos)))
-      case('PRE')
-        ipos_ = amg_smooth_pre_
-      case('POST')
-        ipos_ = amg_smooth_post_
-      case default
+    case default
+
+      if (present(pos)) then
+        select case(psb_toupper(trim(pos)))
+        case('PRE')
+          ipos_ = amg_smooth_pre_
+        case('POST')
+          ipos_ = amg_smooth_post_
+        case default
+          ipos_ = amg_smooth_both_
+        end select
+      else
         ipos_ = amg_smooth_both_
-      end select
-    else
-      ipos_ = amg_smooth_both_
-    end if
-
-    if ((ipos_==amg_smooth_pre_) .or.(ipos_==amg_smooth_both_)) then 
-      if (allocated(lv%sm)) then 
-        call lv%sm%set(what,val,info,idx=idx)
       end if
-    end if
-    if ((ipos_==amg_smooth_post_).or.(ipos_==amg_smooth_both_))then 
-      if (allocated(lv%sm2a)) then 
-        call lv%sm2a%set(what,val,info,idx=idx)
+
+      if ((ipos_==amg_smooth_pre_) .or.(ipos_==amg_smooth_both_)) then 
+        if (allocated(lv%sm)) then 
+          call lv%sm%set(what,val,info,idx=idx)
+        end if
       end if
-    end if
-    if (allocated(lv%aggr)) call lv%aggr%set(what,val,info,idx=idx)
+      if ((ipos_==amg_smooth_post_).or.(ipos_==amg_smooth_both_))then 
+        if (allocated(lv%sm2a)) then 
+          call lv%sm2a%set(what,val,info,idx=idx)
+        end if
+      end if
+      if (allocated(lv%aggr)) call lv%aggr%set(what,val,info,idx=idx)
 
-  end select
+    end select
 
-  if (info /= psb_success_) goto 9999
-  call psb_erractionrestore(err_act)
-  return
+    if (info /= psb_success_) goto 9999
+    call psb_erractionrestore(err_act)
+    return
 
 9999 call psb_error_handler(err_act)
-  return
+    return
 
-end subroutine amg_z_base_onelev_csetr
+  end subroutine amg_z_base_onelev_csetr
+end submodule amg_z_base_onelev_csetr_impl

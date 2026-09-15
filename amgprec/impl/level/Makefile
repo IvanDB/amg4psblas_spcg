@@ -75,7 +75,12 @@ amg_z_base_onelev_setag.o \
 amg_z_base_onelev_setsm.o \
 amg_z_base_onelev_setsv.o \
 amg_z_base_onelev_map_rstr.o \
-amg_z_base_onelev_map_prol.o 
+amg_z_base_onelev_map_prol.o \
+amg_s_base_onelev_wrk_handle.o \
+amg_d_base_onelev_wrk_handle.o \
+amg_c_base_onelev_wrk_handle.o \
+amg_z_base_onelev_wrk_handle.o 
+
 
 
 LIBNAME=libamg_prec.a
@@ -89,4 +94,4 @@ veryclean: clean
 	/bin/rm -f $(LIBNAME)
 
 clean:
-	/bin/rm -f $(OBJS) $(LOCAL_MODS)
+	/bin/rm -f $(OBJS) $(LOCAL_MODS) *.smod

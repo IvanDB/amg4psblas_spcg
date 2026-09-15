@@ -35,72 +35,73 @@
 !    POSSIBILITY OF SUCH DAMAGE.
 !   
 !  
-subroutine amg_d_base_onelev_setsm(lev,val,info,pos)
-
+submodule (amg_d_onelev_mod)  amg_d_base_onelev_setsm_impl
   use psb_base_mod
-  use amg_d_prec_mod, amg_protect_name => amg_d_base_onelev_setsm
-
-  implicit none
-
-  ! Arguments
-  class(amg_d_onelev_type), target, intent(inout) :: lev
-  class(amg_d_base_smoother_type), intent(in)  :: val
-  integer(psb_ipk_), intent(out)               :: info
-  character(len=*), optional, intent(in)       :: pos
   
-  ! Local variables
-  integer(psb_ipk_)                      :: ipos_
-  character(len=*), parameter            :: name='amg_base_onelev_setsm'
-  
-  info = psb_success_
+contains
+  module subroutine amg_d_base_onelev_setsm(lv,val,info,pos)
+    implicit none
 
-  if (present(pos)) then
-    select case(psb_toupper(trim(pos)))
-    case('PRE')
-      ipos_ = amg_smooth_pre_
-    case('POST')
-      ipos_ = amg_smooth_post_
-    case default
+    ! Arguments
+    class(amg_d_onelev_type), target, intent(inout) :: lv
+    class(amg_d_base_smoother_type), intent(in)  :: val
+    integer(psb_ipk_), intent(out)               :: info
+    character(len=*), optional, intent(in)       :: pos
+
+    ! Local variables
+    integer(psb_ipk_)                      :: ipos_
+    character(len=*), parameter            :: name='amg_base_onelev_setsm'
+
+    info = psb_success_
+
+    if (present(pos)) then
+      select case(psb_toupper(trim(pos)))
+      case('PRE')
+        ipos_ = amg_smooth_pre_
+      case('POST')
+        ipos_ = amg_smooth_post_
+      case default
+        ipos_ = amg_smooth_both_
+      end select
+    else
       ipos_ = amg_smooth_both_
-    end select
-  else
-    ipos_ = amg_smooth_both_
-  end if
-
-  if (ipos_ == amg_smooth_both_) then
-    if (allocated(lev%sm2a)) then
-      call lev%sm2a%free(info)
-      deallocate(lev%sm2a, stat=info)
-      lev%sm2 => null()
     end if
-  end if
-     
-  select case(ipos_)
-  case(amg_smooth_pre_, amg_smooth_both_) 
-    if (allocated(lev%sm)) then
-      if (.not.same_type_as(lev%sm,val)) then
-        call lev%sm%free(info)
-        deallocate(lev%sm, stat=info)
+
+    if (ipos_ == amg_smooth_both_) then
+      if (allocated(lv%sm2a)) then
+        call lv%sm2a%free(info)
+        deallocate(lv%sm2a, stat=info)
+        lv%sm2 => null()
       end if
-    endif
-    if (.not.allocated(lev%sm)) then
-      allocate(lev%sm,mold=val) 
     end if
-    call lev%sm%default()        
-    if (ipos_ ==  amg_smooth_both_) lev%sm2 => lev%sm
-  case(amg_smooth_post_) 
-    if (allocated(lev%sm2a)) then
-      if (.not.same_type_as(lev%sm2a,val)) then
-        call lev%sm2a%free(info)
-        deallocate(lev%sm2a, stat=info)
-      endif
-    end if
-    if (.not.allocated(lev%sm2a)) then
-      allocate(lev%sm2a,mold=val) 
-    end if
-    call lev%sm2a%default()
-    lev%sm2 => lev%sm2a
-  end select
-    
-end subroutine amg_d_base_onelev_setsm
 
+    select case(ipos_)
+    case(amg_smooth_pre_, amg_smooth_both_) 
+      if (allocated(lv%sm)) then
+        if (.not.same_type_as(lv%sm,val)) then
+          call lv%sm%free(info)
+          deallocate(lv%sm, stat=info)
+        end if
+      endif
+      if (.not.allocated(lv%sm)) then
+        allocate(lv%sm,mold=val) 
+      end if
+      call lv%sm%default()        
+      if (ipos_ ==  amg_smooth_both_) lv%sm2 => lv%sm
+    case(amg_smooth_post_) 
+      if (allocated(lv%sm2a)) then
+        if (.not.same_type_as(lv%sm2a,val)) then
+          call lv%sm2a%free(info)
+          deallocate(lv%sm2a, stat=info)
+        endif
+      end if
+      if (.not.allocated(lv%sm2a)) then
+        allocate(lv%sm2a,mold=val) 
+      end if
+      call lv%sm2a%default()
+      lv%sm2 => lv%sm2a
+    end select
+
+  end subroutine amg_d_base_onelev_setsm
+
+end submodule amg_d_base_onelev_setsm_impl

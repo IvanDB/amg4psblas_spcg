@@ -35,297 +35,301 @@
 !    POSSIBILITY OF SUCH DAMAGE.
 !
 !
-subroutine amg_z_base_onelev_csetc(lv,what,val,info,pos,idx)
-
+submodule (amg_z_onelev_mod)  amg_z_base_onelev_csetc_impl
   use psb_base_mod
-  use amg_z_onelev_mod, amg_protect_name => amg_z_base_onelev_csetc
-  use amg_z_base_aggregator_mod
-  use amg_z_dec_aggregator_mod
-  use amg_z_symdec_aggregator_mod
-  use amg_z_jac_smoother
-  use amg_z_as_smoother
-  use amg_z_diag_solver
-  use amg_z_l1_diag_solver
-  use amg_z_jac_solver
-  use amg_z_ilu_solver
-  use amg_z_id_solver
-  use amg_z_gs_solver
-  use amg_z_ainv_solver
-  use amg_z_invk_solver
-  use amg_z_invt_solver
+  
+contains
+  module subroutine amg_z_base_onelev_csetc(lv,what,val,info,pos,idx)
+
+    use psb_base_mod
+    use amg_z_base_aggregator_mod
+    use amg_z_dec_aggregator_mod
+    use amg_z_symdec_aggregator_mod
+    use amg_z_jac_smoother
+    use amg_z_as_smoother
+    use amg_z_diag_solver
+    use amg_z_l1_diag_solver
+    use amg_z_jac_solver
+    use amg_z_ilu_solver
+    use amg_z_id_solver
+    use amg_z_gs_solver
+    use amg_z_ainv_solver
+    use amg_z_invk_solver
+    use amg_z_invt_solver
 #if defined(AMG_HAVE_UMF)
-  use amg_z_umf_solver
+    use amg_z_umf_solver
 #endif
 #if defined(AMG_HAVE_SLUDIST)
-  use amg_z_sludist_solver
+    use amg_z_sludist_solver
 #endif
 #if defined(AMG_HAVE_SLU)
-  use amg_z_slu_solver
+    use amg_z_slu_solver
 #endif
 #if defined(AMG_HAVE_MUMPS)
-  use amg_z_mumps_solver
+    use amg_z_mumps_solver
 #endif
 
-  Implicit None
+    Implicit None
 
-  ! Arguments
-  class(amg_z_onelev_type), intent(inout) :: lv
-  character(len=*), intent(in)              :: what
-  character(len=*), intent(in)              :: val
-  integer(psb_ipk_), intent(out)            :: info
-  character(len=*), optional, intent(in)    :: pos
-  integer(psb_ipk_), intent(in), optional   :: idx
-  ! Local
-  integer(psb_ipk_)  :: ipos_, err_act
-  character(len=20) :: name='z_base_onelev_csetc'
-  integer(psb_ipk_) :: ival
-  type(amg_z_base_smoother_type)   :: amg_z_base_smoother_mold
-  type(amg_z_jac_smoother_type)    ::  amg_z_jac_smoother_mold
-  type(amg_z_l1_jac_smoother_type) ::  amg_z_l1_jac_smoother_mold
-  type(amg_z_as_smoother_type)     ::  amg_z_as_smoother_mold
-  type(amg_z_diag_solver_type)     ::  amg_z_diag_solver_mold
-  type(amg_z_l1_diag_solver_type)  ::  amg_z_l1_diag_solver_mold
-  type(amg_z_jac_solver_type)      ::  amg_z_jac_solver_mold
-  type(amg_z_l1_jac_solver_type)   ::  amg_z_l1_jac_solver_mold
-  type(amg_z_ilu_solver_type)      ::  amg_z_ilu_solver_mold
-  type(amg_z_id_solver_type)       ::  amg_z_id_solver_mold
-  type(amg_z_gs_solver_type)       ::  amg_z_gs_solver_mold
-  type(amg_z_bwgs_solver_type)     ::  amg_z_bwgs_solver_mold
-  type(amg_z_ainv_solver_type)     ::  amg_z_ainv_solver_mold
-  type(amg_z_invk_solver_type)     ::  amg_z_invk_solver_mold
-  type(amg_z_invt_solver_type)     ::  amg_z_invt_solver_mold
+    ! Arguments
+    class(amg_z_onelev_type), intent(inout) :: lv
+    character(len=*), intent(in)              :: what
+    character(len=*), intent(in)              :: val
+    integer(psb_ipk_), intent(out)            :: info
+    character(len=*), optional, intent(in)    :: pos
+    integer(psb_ipk_), intent(in), optional   :: idx
+    ! Local
+    integer(psb_ipk_)  :: ipos_, err_act
+    character(len=20) :: name='z_base_onelev_csetc'
+    integer(psb_ipk_) :: ival
+    type(amg_z_base_smoother_type)   :: amg_z_base_smoother_mold
+    type(amg_z_jac_smoother_type)    ::  amg_z_jac_smoother_mold
+    type(amg_z_l1_jac_smoother_type) ::  amg_z_l1_jac_smoother_mold
+    type(amg_z_as_smoother_type)     ::  amg_z_as_smoother_mold
+    type(amg_z_diag_solver_type)     ::  amg_z_diag_solver_mold
+    type(amg_z_l1_diag_solver_type)  ::  amg_z_l1_diag_solver_mold
+    type(amg_z_jac_solver_type)      ::  amg_z_jac_solver_mold
+    type(amg_z_l1_jac_solver_type)   ::  amg_z_l1_jac_solver_mold
+    type(amg_z_ilu_solver_type)      ::  amg_z_ilu_solver_mold
+    type(amg_z_id_solver_type)       ::  amg_z_id_solver_mold
+    type(amg_z_gs_solver_type)       ::  amg_z_gs_solver_mold
+    type(amg_z_bwgs_solver_type)     ::  amg_z_bwgs_solver_mold
+    type(amg_z_ainv_solver_type)     ::  amg_z_ainv_solver_mold
+    type(amg_z_invk_solver_type)     ::  amg_z_invk_solver_mold
+    type(amg_z_invt_solver_type)     ::  amg_z_invt_solver_mold
 #if defined(AMG_HAVE_UMF)
-  type(amg_z_umf_solver_type)     ::  amg_z_umf_solver_mold
+    type(amg_z_umf_solver_type)     ::  amg_z_umf_solver_mold
 #endif
 #if defined(AMG_HAVE_SLUDIST)
-  type(amg_z_sludist_solver_type) ::  amg_z_sludist_solver_mold
+    type(amg_z_sludist_solver_type) ::  amg_z_sludist_solver_mold
 #endif
 #if defined(AMG_HAVE_SLU)
-  type(amg_z_slu_solver_type)   ::  amg_z_slu_solver_mold
+    type(amg_z_slu_solver_type)   ::  amg_z_slu_solver_mold
 #endif
 #if defined(AMG_HAVE_MUMPS)
-  type(amg_z_mumps_solver_type) ::  amg_z_mumps_solver_mold
+    type(amg_z_mumps_solver_type) ::  amg_z_mumps_solver_mold
 #endif
 
 
-  call psb_erractionsave(err_act)
+    call psb_erractionsave(err_act)
 
-  info = psb_success_
+    info = psb_success_
 
-  ival = lv%stringval(val)
+    ival = lv%stringval(val)
 
 
-  if (present(pos)) then
-    select case(psb_toupper(trim(pos)))
-    case('PRE')
-      ipos_ = amg_smooth_pre_
-    case('POST')
-      ipos_ = amg_smooth_post_
-    case default
+    if (present(pos)) then
+      select case(psb_toupper(trim(pos)))
+      case('PRE')
+        ipos_ = amg_smooth_pre_
+      case('POST')
+        ipos_ = amg_smooth_post_
+      case default
+        ipos_ = amg_smooth_both_
+      end select
+    else
       ipos_ = amg_smooth_both_
-    end select
-  else
-    ipos_ = amg_smooth_both_
-  end if
-
-  select case (psb_toupper(trim(what)))
-  case ('SMOOTHER_TYPE')
-    select case (psb_toupper(trim(val)))
-    case ('NOPREC','NONE')
-      call lv%set(amg_z_base_smoother_mold,info,pos=pos)
-      if (info == 0) call lv%set(amg_z_id_solver_mold,info,pos=pos)
-
-    case ('JAC','JACOBI')
-      call lv%set(amg_z_jac_smoother_mold,info,pos=pos)
-      if (info == 0) call lv%set(amg_z_diag_solver_mold,info,pos=pos)
-
-    case ('L1-JACOBI')
-      call lv%set(amg_z_jac_smoother_mold,info,pos=pos)
-      if (info == 0) call lv%set(amg_z_l1_diag_solver_mold,info,pos=pos)
-
-    case ('BJAC')
-      call lv%set(amg_z_jac_smoother_mold,info,pos=pos)
-      if (info == 0) call lv%set(amg_z_ilu_solver_mold,info,pos=pos)
-
-    case ('L1-BJAC')
-      call lv%set(amg_z_l1_jac_smoother_mold,info,pos=pos)
-      if (info == 0) call lv%set(amg_z_ilu_solver_mold,info,pos=pos)
-
-    case ('AS')
-      call lv%set(amg_z_as_smoother_mold,info,pos=pos)
-      if (info == 0) call lv%set(amg_z_ilu_solver_mold,info,pos=pos)
-
-    case ('GS','FWGS')
-      call lv%set(amg_z_jac_smoother_mold,info,pos='pre')
-      if (info == 0) call lv%set(amg_z_gs_solver_mold,info,pos='pre')
-      if (allocated(lv%sm2a)) deallocate(lv%sm2a)
-    case ('BWGS')
-      call lv%set(amg_z_jac_smoother_mold,info,pos='pre')
-      if (info == 0) call lv%set(amg_z_bwgs_solver_mold,info,pos='pre')
-      if (allocated(lv%sm2a)) deallocate(lv%sm2a)
-    case ('FBGS')
-      call lv%set(amg_z_jac_smoother_mold,info,pos='pre')
-      if (info == 0) call lv%set(amg_z_gs_solver_mold,info,pos='pre')
-      call lv%set(amg_z_jac_smoother_mold,info,pos='post')
-      if (info == 0) call lv%set(amg_z_bwgs_solver_mold,info,pos='post')
-    case ('L1-GS','L1-FWGS')
-      call lv%set(amg_z_l1_jac_smoother_mold,info,pos='pre')
-      if (info == 0) call lv%set(amg_z_gs_solver_mold,info,pos='pre')
-      if (allocated(lv%sm2a)) deallocate(lv%sm2a)
-    case ('L1-BWGS')
-      call lv%set(amg_z_l1_jac_smoother_mold,info,pos='pre')
-      if (info == 0) call lv%set(amg_z_bwgs_solver_mold,info,pos='pre')
-      if (allocated(lv%sm2a)) deallocate(lv%sm2a)
-    case ('L1-FBGS')
-      call lv%set(amg_z_l1_jac_smoother_mold,info,pos='pre')
-      if (info == 0) call lv%set(amg_z_gs_solver_mold,info,pos='pre')
-      call lv%set(amg_z_l1_jac_smoother_mold,info,pos='post')
-      if (info == 0) call lv%set(amg_z_bwgs_solver_mold,info,pos='post')
-
-    case default
-      !
-      ! Do nothing and hope for the best :)
-      !
-    end select
-    if ((ipos_==amg_smooth_pre_).or.(ipos_==amg_smooth_both_)) then
-      if (allocated(lv%sm)) call lv%sm%default()
-    end if
-    if ((ipos_==amg_smooth_post_).or.(ipos_==amg_smooth_both_)) then
-      if (allocated(lv%sm2a)) call lv%sm2a%default()
     end if
 
+    select case (psb_toupper(trim(what)))
+    case ('SMOOTHER_TYPE')
+      select case (psb_toupper(trim(val)))
+      case ('NOPREC','NONE')
+        call lv%set(amg_z_base_smoother_mold,info,pos=pos)
+        if (info == 0) call lv%set(amg_z_id_solver_mold,info,pos=pos)
 
-  case('SUB_SOLVE')
-    select case (psb_toupper(trim(val)))
-    case ('NONE','NOPREC','FACT_NONE')
-      call lv%set(amg_z_id_solver_mold,info,pos=pos)
+      case ('JAC','JACOBI')
+        call lv%set(amg_z_jac_smoother_mold,info,pos=pos)
+        if (info == 0) call lv%set(amg_z_diag_solver_mold,info,pos=pos)
 
-    case ('DIAG','JACOBI')
-      call lv%set(amg_z_diag_solver_mold,info,pos=pos)
+      case ('L1-JACOBI')
+        call lv%set(amg_z_jac_smoother_mold,info,pos=pos)
+        if (info == 0) call lv%set(amg_z_l1_diag_solver_mold,info,pos=pos)
 
-    case ('L1-DIAG','L1-JACOBI')
-      call lv%set(amg_z_l1_diag_solver_mold,info,pos=pos)
+      case ('BJAC')
+        call lv%set(amg_z_jac_smoother_mold,info,pos=pos)
+        if (info == 0) call lv%set(amg_z_ilu_solver_mold,info,pos=pos)
 
-    case ('GS','FGS','FWGS')
-      call lv%set(amg_z_gs_solver_mold,info,pos=pos)
+      case ('L1-BJAC')
+        call lv%set(amg_z_l1_jac_smoother_mold,info,pos=pos)
+        if (info == 0) call lv%set(amg_z_ilu_solver_mold,info,pos=pos)
 
-    case ('BGS','BWGS')
-      call lv%set(amg_z_bwgs_solver_mold,info,pos=pos)
+      case ('AS')
+        call lv%set(amg_z_as_smoother_mold,info,pos=pos)
+        if (info == 0) call lv%set(amg_z_ilu_solver_mold,info,pos=pos)
 
-    case ('AINV')
-      call lv%set(amg_z_ainv_solver_mold,info,pos=pos)
-    case ('INVK')
-      call lv%set(amg_z_invk_solver_mold,info,pos=pos)
-    case ('INVT')
-      call lv%set(amg_z_invt_solver_mold,info,pos=pos)
-    case ('ILU','ILUT','MILU')
-      call lv%set(amg_z_ilu_solver_mold,info,pos=pos)
-      if (info == 0) then
-        if ((ipos_==amg_smooth_pre_) .or.(ipos_==amg_smooth_both_)) then
-          call lv%sm%sv%set('SUB_SOLVE',val,info)
-        end if
-        if ((ipos_==amg_smooth_post_).or.(ipos_==amg_smooth_both_))then
-          if (allocated(lv%sm2a)) call lv%sm2a%sv%set('SUB_SOLVE',val,info)
-        end if
+      case ('GS','FWGS')
+        call lv%set(amg_z_jac_smoother_mold,info,pos='pre')
+        if (info == 0) call lv%set(amg_z_gs_solver_mold,info,pos='pre')
+        if (allocated(lv%sm2a)) deallocate(lv%sm2a)
+      case ('BWGS')
+        call lv%set(amg_z_jac_smoother_mold,info,pos='pre')
+        if (info == 0) call lv%set(amg_z_bwgs_solver_mold,info,pos='pre')
+        if (allocated(lv%sm2a)) deallocate(lv%sm2a)
+      case ('FBGS')
+        call lv%set(amg_z_jac_smoother_mold,info,pos='pre')
+        if (info == 0) call lv%set(amg_z_gs_solver_mold,info,pos='pre')
+        call lv%set(amg_z_jac_smoother_mold,info,pos='post')
+        if (info == 0) call lv%set(amg_z_bwgs_solver_mold,info,pos='post')
+      case ('L1-GS','L1-FWGS')
+        call lv%set(amg_z_l1_jac_smoother_mold,info,pos='pre')
+        if (info == 0) call lv%set(amg_z_gs_solver_mold,info,pos='pre')
+        if (allocated(lv%sm2a)) deallocate(lv%sm2a)
+      case ('L1-BWGS')
+        call lv%set(amg_z_l1_jac_smoother_mold,info,pos='pre')
+        if (info == 0) call lv%set(amg_z_bwgs_solver_mold,info,pos='pre')
+        if (allocated(lv%sm2a)) deallocate(lv%sm2a)
+      case ('L1-FBGS')
+        call lv%set(amg_z_l1_jac_smoother_mold,info,pos='pre')
+        if (info == 0) call lv%set(amg_z_gs_solver_mold,info,pos='pre')
+        call lv%set(amg_z_l1_jac_smoother_mold,info,pos='post')
+        if (info == 0) call lv%set(amg_z_bwgs_solver_mold,info,pos='post')
+
+      case default
+        !
+        ! Do nothing and hope for the best :)
+        !
+      end select
+      if ((ipos_==amg_smooth_pre_).or.(ipos_==amg_smooth_both_)) then
+        if (allocated(lv%sm)) call lv%sm%default()
       end if
+      if ((ipos_==amg_smooth_post_).or.(ipos_==amg_smooth_both_)) then
+        if (allocated(lv%sm2a)) call lv%sm2a%default()
+      end if
+
+
+    case('SUB_SOLVE')
+      select case (psb_toupper(trim(val)))
+      case ('NONE','NOPREC','FACT_NONE')
+        call lv%set(amg_z_id_solver_mold,info,pos=pos)
+
+      case ('DIAG','JACOBI')
+        call lv%set(amg_z_diag_solver_mold,info,pos=pos)
+
+      case ('L1-DIAG','L1-JACOBI')
+        call lv%set(amg_z_l1_diag_solver_mold,info,pos=pos)
+
+      case ('GS','FGS','FWGS')
+        call lv%set(amg_z_gs_solver_mold,info,pos=pos)
+
+      case ('BGS','BWGS')
+        call lv%set(amg_z_bwgs_solver_mold,info,pos=pos)
+
+      case ('AINV')
+        call lv%set(amg_z_ainv_solver_mold,info,pos=pos)
+      case ('INVK')
+        call lv%set(amg_z_invk_solver_mold,info,pos=pos)
+      case ('INVT')
+        call lv%set(amg_z_invt_solver_mold,info,pos=pos)
+      case ('ILU','ILUT','MILU')
+        call lv%set(amg_z_ilu_solver_mold,info,pos=pos)
+        if (info == 0) then
+          if ((ipos_==amg_smooth_pre_) .or.(ipos_==amg_smooth_both_)) then
+            call lv%sm%sv%set('SUB_SOLVE',val,info)
+          end if
+          if ((ipos_==amg_smooth_post_).or.(ipos_==amg_smooth_both_))then
+            if (allocated(lv%sm2a)) call lv%sm2a%sv%set('SUB_SOLVE',val,info)
+          end if
+        end if
 #ifdef AMG_HAVE_SLU
-    case ('SLU')
-      call lv%set(amg_z_slu_solver_mold,info,pos=pos)
+      case ('SLU')
+        call lv%set(amg_z_slu_solver_mold,info,pos=pos)
 #endif
 #ifdef AMG_HAVE_MUMPS 
-    case ('MUMPS')
-      call lv%set(amg_z_mumps_solver_mold,info,pos=pos)
+      case ('MUMPS')
+        call lv%set(amg_z_mumps_solver_mold,info,pos=pos)
 #endif
 #ifdef AMG_HAVE_SLUDIST
-    case ('SLUDIST')
-      call lv%set(amg_z_sludist_solver_mold,info,pos=pos)
+      case ('SLUDIST')
+        call lv%set(amg_z_sludist_solver_mold,info,pos=pos)
 #endif
 #ifdef AMG_HAVE_UMF
-    case ('UMF')
-      call lv%set(amg_z_umf_solver_mold,info,pos=pos)
+      case ('UMF')
+        call lv%set(amg_z_umf_solver_mold,info,pos=pos)
 #endif
-    case default
-      !
-      ! Do nothing and hope for the best :)
-      !
-    end select
+      case default
+        !
+        ! Do nothing and hope for the best :)
+        !
+      end select
 
-  case ('ML_CYCLE')
-    lv%parms%ml_cycle      = amg_stringval(val)
+    case ('ML_CYCLE')
+      lv%parms%ml_cycle      = amg_stringval(val)
 
-  case ('PAR_AGGR_ALG')
-    ival = amg_stringval(val)
-    lv%parms%par_aggr_alg  = ival
-    if (allocated(lv%aggr)) then
-      call lv%aggr%free(info)
-      if (info == 0) deallocate(lv%aggr,stat=info)
-      if (info /= 0) then
-        info = psb_err_internal_error_
-        call psb_errpush(info,name,a_err='aggregator deallocation?')
+    case ('PAR_AGGR_ALG')
+      ival = amg_stringval(val)
+      lv%parms%par_aggr_alg  = ival
+      if (allocated(lv%aggr)) then
+        call lv%aggr%free(info)
+        if (info == 0) deallocate(lv%aggr,stat=info)
+        if (info /= 0) then
+          info = psb_err_internal_error_
+          call psb_errpush(info,name,a_err='aggregator deallocation?')
+          goto 9999
+          return
+        end if
+      end if
+
+      select case(val)
+      case('DEC','DECOUPLED')
+        allocate(amg_z_dec_aggregator_type :: lv%aggr, stat=info)
+      case('SYMDEC')
+        allocate(amg_z_symdec_aggregator_type :: lv%aggr, stat=info)
+      case default
+        info =  psb_err_internal_error_
+        call psb_errpush(info,name,a_err='Unsupported PAR_AGGR_ALG')
         goto 9999
-        return
-      end if
-    end if
+      end select
+      if (info == psb_success_) call lv%aggr%default()
 
-    select case(val)
-    case('DEC','DECOUPLED')
-      allocate(amg_z_dec_aggregator_type :: lv%aggr, stat=info)
-    case('SYMDEC')
-      allocate(amg_z_symdec_aggregator_type :: lv%aggr, stat=info)
-  case default
-      info =  psb_err_internal_error_
-      call psb_errpush(info,name,a_err='Unsupported PAR_AGGR_ALG')
-      goto 9999
+    case ('AGGR_ORD')
+      lv%parms%aggr_ord      = amg_stringval(val)
+
+    case ('AGGR_TYPE')
+      lv%parms%aggr_type     = amg_stringval(val)
+      if (allocated(lv%aggr)) call lv%aggr%set_aggr_type(lv%parms,info)
+
+    case ('AGGR_PROL')
+      lv%parms%aggr_prol     = amg_stringval(val)
+
+    case ('COARSE_MAT')
+      lv%parms%coarse_mat    = amg_stringval(val)
+
+    case ('AGGR_OMEGA_ALG')
+      lv%parms%aggr_omega_alg= amg_stringval(val)
+
+    case ('AGGR_EIG')
+      lv%parms%aggr_eig      = amg_stringval(val)
+
+    case ('AGGR_FILTER')
+      lv%parms%aggr_filter   = amg_stringval(val)
+
+    case ('COARSE_SOLVE')
+      lv%parms%coarse_solve    = amg_stringval(val)
+
+    case default
+      if ((ipos_==amg_smooth_pre_) .or.(ipos_==amg_smooth_both_)) then
+        if (allocated(lv%sm)) then
+          call lv%sm%set(what,val,info,idx=idx)
+        end if
+      end if
+      if ((ipos_==amg_smooth_post_).or.(ipos_==amg_smooth_both_))then
+        if (allocated(lv%sm2a)) then
+          call lv%sm2a%set(what,val,info,idx=idx)
+        end if
+      end if
+      if (allocated(lv%aggr)) call lv%aggr%set(what,val,info,idx=idx)
+
     end select
-    if (info == psb_success_) call lv%aggr%default()
-
-  case ('AGGR_ORD')
-    lv%parms%aggr_ord      = amg_stringval(val)
-
-  case ('AGGR_TYPE')
-    lv%parms%aggr_type     = amg_stringval(val)
-    if (allocated(lv%aggr)) call lv%aggr%set_aggr_type(lv%parms,info)
-
-  case ('AGGR_PROL')
-    lv%parms%aggr_prol     = amg_stringval(val)
-
-  case ('COARSE_MAT')
-    lv%parms%coarse_mat    = amg_stringval(val)
-
-  case ('AGGR_OMEGA_ALG')
-    lv%parms%aggr_omega_alg= amg_stringval(val)
-
-  case ('AGGR_EIG')
-    lv%parms%aggr_eig      = amg_stringval(val)
-
-  case ('AGGR_FILTER')
-    lv%parms%aggr_filter   = amg_stringval(val)
-
-  case ('COARSE_SOLVE')
-    lv%parms%coarse_solve    = amg_stringval(val)
-
-  case default
-    if ((ipos_==amg_smooth_pre_) .or.(ipos_==amg_smooth_both_)) then
-      if (allocated(lv%sm)) then
-        call lv%sm%set(what,val,info,idx=idx)
-      end if
-    end if
-    if ((ipos_==amg_smooth_post_).or.(ipos_==amg_smooth_both_))then
-      if (allocated(lv%sm2a)) then
-        call lv%sm2a%set(what,val,info,idx=idx)
-      end if
-    end if
-    if (allocated(lv%aggr)) call lv%aggr%set(what,val,info,idx=idx)
-
-  end select
 
 
-  if (info /= psb_success_) goto 9999
+    if (info /= psb_success_) goto 9999
 
-  call psb_erractionrestore(err_act)
-  return
+    call psb_erractionrestore(err_act)
+    return
 
 9999 call psb_error_handler(err_act)
-  return
+    return
 
-end subroutine amg_z_base_onelev_csetc
+  end subroutine amg_z_base_onelev_csetc
+end submodule amg_z_base_onelev_csetc_impl

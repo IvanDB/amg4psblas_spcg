@@ -35,41 +35,43 @@
 !    POSSIBILITY OF SUCH DAMAGE.
 !   
 !  
-subroutine amg_z_base_onelev_free(lv,info)
-  
+submodule (amg_z_onelev_mod)  amg_z_base_onelev_free_impl
   use psb_base_mod
-  use amg_z_onelev_mod, amg_protect_name =>  amg_z_base_onelev_free
-  implicit none 
+  
+contains
+  module subroutine amg_z_base_onelev_free(lv,info)
+    implicit none 
 
-  class(amg_z_onelev_type), intent(inout) :: lv
-  integer(psb_ipk_), intent(out)          :: info
-  integer(psb_ipk_) :: i
+    class(amg_z_onelev_type), intent(inout) :: lv
+    integer(psb_ipk_), intent(out)          :: info
+    integer(psb_ipk_) :: i
 
-  info = psb_success_
+    info = psb_success_
 
-  ! We might just deallocate the top level array, except 
-  ! that there may be inner objects containing C pointers,
-  ! e.g.  UMFPACK, SLU or CUDA stuff.
-  ! We really need FINALs. 
-  if (allocated(lv%sm)) &
-       & call lv%sm%free(info)
+    ! We might just deallocate the top level array, except 
+    ! that there may be inner objects containing C pointers,
+    ! e.g.  UMFPACK, SLU or CUDA stuff.
+    ! We really need FINALs. 
+    if (allocated(lv%sm)) &
+         & call lv%sm%free(info)
 
-  if (allocated(lv%sm2a)) &
-       & call lv%sm2a%free(info)
+    if (allocated(lv%sm2a)) &
+         & call lv%sm2a%free(info)
 
-  if (allocated(lv%wrk)) &
-       & call lv%wrk%free(info)
+    if (allocated(lv%wrk)) &
+         & call lv%wrk%free(info)
 
-  call lv%ac%free()
-  if (lv%desc_ac%is_ok()) &
-       & call lv%desc_ac%free(info)
-  call lv%linmap%free(info)
+    call lv%ac%free()
+    if (lv%desc_ac%is_ok()) &
+         & call lv%desc_ac%free(info)
+    call lv%linmap%free(info)
 
-  ! This is a pointer to something else, must not free it here. 
-  nullify(lv%base_a) 
-  ! This is a pointer to something else, must not free it here. 
-  nullify(lv%base_desc) 
+    ! This is a pointer to something else, must not free it here. 
+    nullify(lv%base_a) 
+    ! This is a pointer to something else, must not free it here. 
+    nullify(lv%base_desc) 
 
-  call lv%nullify()
+    call lv%nullify()
 
-end subroutine amg_z_base_onelev_free
+  end subroutine amg_z_base_onelev_free
+end submodule amg_z_base_onelev_free_impl

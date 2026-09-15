@@ -35,59 +35,60 @@
 !    POSSIBILITY OF SUCH DAMAGE.
 !   
 !  
-subroutine amg_c_base_onelev_check(lv,info)
-  
+submodule (amg_c_onelev_mod)  amg_c_base_onelev_check_impl
   use psb_base_mod
-  use amg_c_onelev_mod, amg_protect_name => amg_c_base_onelev_check
-
-  Implicit None
-
-  ! Arguments
-  class(amg_c_onelev_type), intent(inout) :: lv 
-  integer(psb_ipk_), intent(out)            :: info
-  integer(psb_ipk_)           :: err_act
-  character(len=20) :: name='c_base_onelev_check'
-
-  call psb_erractionsave(err_act)
-  info = psb_success_
-
-  call amg_check_def(lv%parms%sweeps_pre,&
-       & 'Jacobi sweeps',ione,is_int_non_negative)
-  call amg_check_def(lv%parms%sweeps_post,&
-       & 'Jacobi sweeps',ione,is_int_non_negative)
-
-  if (allocated(lv%sm)) then 
-    call lv%sm%check(info)
-  else 
-    info=3111
-    call psb_errpush(info,name)
-    goto 9999
-  end if
-
-  if (allocated(lv%sm2a)) then 
-    call lv%sm2a%check(info)
-  else if (.not.inner_check(lv%sm2,lv%sm)) then 
-    info=3111
-    call psb_errpush(info,name)
-    goto 9999
-  end if
-
-  if (info /= psb_success_) goto 9999
-
-  call psb_erractionrestore(err_act)
-  return
-
-9999 call psb_error_handler(err_act)
-  return
 
 contains
-  function inner_check(smp,sm) result(res)
-    implicit none
-    logical :: res
-    class(amg_c_base_smoother_type), intent(in), pointer :: smp 
-    class(amg_c_base_smoother_type), intent(in), target  :: sm
+  module subroutine amg_c_base_onelev_check(lv,info)
+    Implicit None
 
-    res = associated(smp, sm)
-  end function inner_check
-  
-end subroutine amg_c_base_onelev_check
+    ! Arguments
+    class(amg_c_onelev_type), intent(inout) :: lv 
+    integer(psb_ipk_), intent(out)            :: info
+    integer(psb_ipk_)           :: err_act
+    character(len=20) :: name='c_base_onelev_check'
+
+    call psb_erractionsave(err_act)
+    info = psb_success_
+
+    call amg_check_def(lv%parms%sweeps_pre,&
+         & 'Jacobi sweeps',ione,is_int_non_negative)
+    call amg_check_def(lv%parms%sweeps_post,&
+         & 'Jacobi sweeps',ione,is_int_non_negative)
+
+    if (allocated(lv%sm)) then 
+      call lv%sm%check(info)
+    else 
+      info=3111
+      call psb_errpush(info,name)
+      goto 9999
+    end if
+
+    if (allocated(lv%sm2a)) then 
+      call lv%sm2a%check(info)
+    else if (.not.inner_check(lv%sm2,lv%sm)) then 
+      info=3111
+      call psb_errpush(info,name)
+      goto 9999
+    end if
+
+    if (info /= psb_success_) goto 9999
+
+    call psb_erractionrestore(err_act)
+    return
+
+9999 call psb_error_handler(err_act)
+    return
+
+  contains
+    function inner_check(smp,sm) result(res)
+      implicit none
+      logical :: res
+      class(amg_c_base_smoother_type), intent(in), pointer :: smp 
+      class(amg_c_base_smoother_type), intent(in), target  :: sm
+
+      res = associated(smp, sm)
+    end function inner_check
+
+  end subroutine amg_c_base_onelev_check
+end submodule amg_c_base_onelev_check_impl

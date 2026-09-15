@@ -440,6 +440,7 @@ program amg_d_pde3d
   use amg_d_genpde_mod
   use psb_mixed_support_mod
   use psb_cg_mixed_mod
+  use psb_ext_mod
 #if defined(PSB_OPENMP)
   use omp_lib
 #endif
@@ -582,6 +583,15 @@ program amg_d_pde3d
   end type precdata
   type(precdata)       :: p_choice
 
+  
+  type(psb_d_csr_sparse_mat), target :: dcsrmold
+  type(psb_s_csr_sparse_mat), target :: scsrmold
+
+  type(psb_d_hll_sparse_mat), target :: dhllmold
+  type(psb_s_hll_sparse_mat), target :: shllmold
+  class(psb_d_base_sparse_mat), pointer :: dmold
+  class(psb_s_base_sparse_mat), pointer :: smold
+  
   ! other variables
   integer(psb_ipk_)  :: info, i, k
   character(len=20)  :: name,ch_err
@@ -635,30 +645,31 @@ program amg_d_pde3d
   case default
     mixed = .false.
   end select
-
+  dmold => dcsrmold
+  smold => scsrmold
   !
   !  allocate and fill in the coefficient matrix, rhs and initial guess
   !
-
+  call psi_set_hksz(16)
   call psb_barrier(ctxt)
   t1 = psb_wtime()
   select case(psb_toupper(trim(pdecoeff)))
   case("POISSON")
     call amg_gen_pde3d(ctxt,idim,a,b,x,desc_a,afmt,&
          & a1_poisson,a2_poisson,a3_poisson,&
-         & b1_poisson,b2_poisson,b3_poisson,c_poisson,g_poisson,info)
+         & b1_poisson,b2_poisson,b3_poisson,c_poisson,g_poisson,info,amold=dmold)
   case("EXP")
     call amg_gen_pde3d(ctxt,idim,a,b,x,desc_a,afmt,&
          & a1_exp,a2_exp,a3_exp,&
-         & b1_exp,b2_exp,b3_exp,c_exp,g_exp,info)
+         & b1_exp,b2_exp,b3_exp,c_exp,g_exp,info,amold=dmold)
   case("BOX")
     call amg_gen_pde3d(ctxt,idim,a,b,x,desc_a,afmt,&
          & a1_box,a2_box,a3_box,&
-         & b1_box,b2_box,b3_box,c_box,g_box,info)
+         & b1_box,b2_box,b3_box,c_box,g_box,info,amold=dmold)
   case("GAUSS")
     call amg_gen_pde3d(ctxt,idim,a,b,x,desc_a,afmt,&
          & a1_gauss,a2_gauss,a3_gauss,&
-         & b1_gauss,b2_gauss,b3_gauss,c_gauss,g_gauss,info)
+         & b1_gauss,b2_gauss,b3_gauss,c_gauss,g_gauss,info,amold=dmold)
   case default
     info=psb_err_from_subroutine_
     ch_err='amg_gen_pdecoeff'
@@ -690,7 +701,7 @@ program amg_d_pde3d
   !
   call psb_barrier(ctxt)
   t1 = psb_wtime() 
-  call psb_d2s_cscnv(a,asingle,info,type=afmt)
+  call psb_d2s_cscnv(a,asingle,info,mold=smold)
   call psb_barrier(ctxt)
   t2 = psb_wtime() -t1
   if (iam == psb_root_) &
@@ -869,7 +880,7 @@ program amg_d_pde3d
   end if
   call psb_barrier(ctxt)
   t1 = psb_wtime()
-  call sprec%smoothers_build(asingle,desc_a,info)
+  call sprec%smoothers_build(asingle,desc_a,info,amold=smold)
   tsmth = psb_wtime()-t1 
   if (info /= psb_success_) then
     call psb_errpush(psb_err_from_subroutine_,name,a_err='amg_smoothers_bld')
@@ -1059,7 +1070,7 @@ program amg_d_pde3d
   end if
   call psb_barrier(ctxt)
   t1 = psb_wtime()
-  call prec%smoothers_build(a,desc_a,info)
+  call prec%smoothers_build(a,desc_a,info,amold=dmold)
   tsmth = psb_wtime()-t1
   if (info /= psb_success_) then
     call psb_errpush(psb_err_from_subroutine_,name,a_err='amg_smoothers_bld')

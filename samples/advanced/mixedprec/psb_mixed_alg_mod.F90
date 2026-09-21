@@ -672,6 +672,7 @@ contains
 		end if
 
 		! check convergence here?
+		itidx = 0
 		if(psb_check_conv(methdfullname, itidx, x, r, desc_a, stopdat, info)) return
 
 		! Chebyshev coefficient calculation
@@ -1038,6 +1039,7 @@ contains
 		end if
 
 		! check convergence here?
+		itidx = 0
 		if(psb_check_conv(methdfullname, itidx, x, r, desc_a, stopdat, info)) return
 
 		! Chebyshev coefficient calculation

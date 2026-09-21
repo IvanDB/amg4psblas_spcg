@@ -52,14 +52,14 @@
 ! with Dirichlet boundary conditions
 !   u = g
 !
-!  on the unit cube  0<=x,y,z<=1.
+!  on the unit cube  0<=x, y, z<=1.
 !
 !
 ! Note that if b1=b2=b3=c=0., the PDE is the  Laplace equation.
 !
 ! There are three choices available for data distribution:
 ! 1. A simple BLOCK distribution
-! 2. A ditribution based on arbitrary assignment of indices to processes,
+! 2. A ditribution based on arbitrary assignment of indices to processes, 
 !    typically from a graph partitioner
 ! 3. A 3D distribution in which the unit cube is partitioned
 !    into subcubes, each one assigned to a process.
@@ -130,7 +130,7 @@ program amg_d_pde3d
     character(len=40) :: descr       ! verbose description of the prec
     character(len=10) :: ptype       ! preconditioner type
 
-    integer(psb_ipk_) :: outer_sweeps ! number of outer sweeps: sweeps for 1-level,
+    integer(psb_ipk_) :: outer_sweeps ! number of outer sweeps: sweeps for 1-level, 
     ! AMG cycles for ML
     ! general AMG data
     character(len=32) :: mlcycle      ! AMG cycle type
@@ -159,7 +159,7 @@ program amg_d_pde3d
     integer(psb_ipk_) :: novr         ! number of overlap layers
     character(len=32) :: restr        ! restriction over application of AS
     character(len=32) :: prol         ! prolongation over application of AS
-    character(len=32) :: solve        ! local subsolver type: ILU, MILU, ILUT,
+    character(len=32) :: solve        ! local subsolver type: ILU, MILU, ILUT, 
                                                       ! UMF, MUMPS, SLU, FWGS, BWGS, JAC
     integer(psb_ipk_) :: ssweeps      ! inner solver sweeps
     character(len=32) :: variant      ! AINV variant: LLK, etc
@@ -177,7 +177,7 @@ program amg_d_pde3d
     integer(psb_ipk_) :: novr2        ! number of overlap layers
     character(len=32) :: restr2       ! restriction  over application of AS
     character(len=32) :: prol2        ! prolongation over application of AS
-    character(len=32) :: solve2       ! local subsolver type: ILU, MILU, ILUT,
+    character(len=32) :: solve2       ! local subsolver type: ILU, MILU, ILUT, 
                                                       ! UMF, MUMPS, SLU, FWGS, BWGS, JAC
     integer(psb_ipk_) :: ssweeps2     ! inner solver sweeps
     character(len=32) :: variant2     ! AINV variant: LLK, etc
@@ -189,7 +189,7 @@ program amg_d_pde3d
     character(len=32) :: cmat         ! coarsest matrix layout: REPL, DIST
     character(len=32) :: csolve       ! coarsest-lev solver: BJAC, SLUDIST (distr. mat.);
                                             ! UMF, MUMPS, SLU, ILU, ILUT, MILU (repl. mat.)
-    character(len=32) :: csbsolve     ! coarsest-lev local subsolver: ILU, ILUT, MILU,
+    character(len=32) :: csbsolve     ! coarsest-lev local subsolver: ILU, ILUT, MILU, 
                                                                   ! UMF, MUMPS, SLU
     integer(psb_ipk_) :: cfill        ! fill-in for incomplete LU factorization
     real(psb_dpk_)    :: cthres       ! threshold for ILUT factorization
@@ -329,7 +329,7 @@ program amg_d_pde3d
   end if
 
   if (iam == psb_root_) write(psb_out_unit, '("PDE Coefficients             : ", a)') pdecoeff
-  if (iam == psb_root_) write(psb_out_unit, '("Overall matrix creation time : ",es12.5)') tpgen
+  if (iam == psb_root_) write(psb_out_unit, '("Overall matrix creation time : ", es12.5)') tpgen
   if (iam == psb_root_) write(psb_out_unit, '(" ")')
 
   if (mixed) then
@@ -339,112 +339,109 @@ program amg_d_pde3d
     !
     call psb_barrier(ctxt)
     t1 = psb_wtime() 
-    call psb_d2s_cscnv(a,asingle,info,mold=smold)
+    call psb_d2s_cscnv(a, asingle, info, type=afmt)
     call psb_barrier(ctxt)
     t2 = psb_wtime() -t1
-    if (iam == psb_root_) write(psb_out_unit,'("Conversion D to S       time : ",es12.5)')t2
+    if (iam == psb_root_) write(psb_out_unit, '("Conversion D to S       time : ", es12.5)')t2
     
     !
     ! initialize the preconditioner
     !
     call sprec%init(ctxt, p_choice%ptype, info)
     select case(trim(psb_toupper(p_choice%ptype)))
-      case ('NONE', 'NOPREC')
-        ! Do nothing, keep defaults
+    case ('NONE', 'NOPREC')
+      ! Do nothing, keep defaults
 
-      case ('JACOBI', 'L1-JACOBI', 'GS', 'FWGS', 'FBGS')
-        ! 1-level sweeps from "outer_sweeps"
-        call sprec%set('smoother_sweeps', p_choice%jsweeps, info)
+    case ('JACOBI', 'L1-JACOBI', 'GS', 'FWGS', 'FBGS')
+      ! 1-level sweeps from "outer_sweeps"
+      call sprec%set('smoother_sweeps', p_choice%jsweeps, info)
 
-      case ('BJAC', 'POLY')
-        call sprec%set('smoother_sweeps',  p_choice%jsweeps,   info)
-        call sprec%set('sub_solve',        p_choice%solve,     info)
-        call sprec%set('solver_sweeps',    p_choice%ssweeps,   info)
-        call sprec%set('poly_degree',      p_choice%degree,    info)
-        call sprec%set('poly_variant',     p_choice%pvariant,  info)
-        if (psb_toupper(p_choice%solve) == 'MUMPS') &
-          & call sprec%set('mumps_loc_glob', 'local_solver',       info)
-        call sprec%set('sub_fillin',       p_choice%fill,      info)
-        call sprec%set('sub_iluthrs',      p_choice%thr,       info)
+    case ('BJAC', 'POLY')
+      call sprec%set('smoother_sweeps', p_choice%jsweeps, info)
+      call sprec%set('sub_solve',       p_choice%solve,   info)
+      call sprec%set('solver_sweeps',   p_choice%ssweeps,   info)
+      call sprec%set('poly_degree',     p_choice%degree,    info)
+      call sprec%set('poly_variant',    p_choice%pvariant,  info)
+      if (psb_toupper(p_choice%solve)=='MUMPS') &
+          & call sprec%set('mumps_loc_glob', 'local_solver', info)
+      call sprec%set('sub_fillin',      p_choice%fill,    info)
+      call sprec%set('sub_iluthrs',     real(p_choice%thr, kind = psb_spk_),     info)
 
-      case('AS')
-        call sprec%set('smoother_sweeps',  p_choice%jsweeps,   info)
-        call sprec%set('sub_ovr',          p_choice%novr,      info)
-        call sprec%set('sub_restr',        p_choice%restr,     info)
-        call sprec%set('sub_prol',         p_choice%prol,      info)
-        call sprec%set('sub_solve',        p_choice%solve,     info)
-        call sprec%set('solver_sweeps',    p_choice%ssweeps,   info)
-        if (psb_toupper(p_choice%solve) == 'MUMPS') &
-          & call sprec%set('mumps_loc_glob', 'local_solver',       info)
-        call sprec%set('sub_fillin',      p_choice%fill,       info)
-        call sprec%set('sub_iluthrs',     p_choice%thr,        info)
+    case('AS')
+      call sprec%set('smoother_sweeps', p_choice%jsweeps, info)
+      call sprec%set('sub_ovr',         p_choice%novr,    info)
+      call sprec%set('sub_restr',       p_choice%restr,   info)
+      call sprec%set('sub_prol',        p_choice%prol,    info)
+      call sprec%set('sub_solve',       p_choice%solve,   info)
+      call sprec%set('solver_sweeps',   p_choice%ssweeps,   info)
+      if (psb_toupper(p_choice%solve) == 'MUMPS') &
+          & call sprec%set('mumps_loc_glob', 'local_solver', info)
+      call sprec%set('sub_fillin',      p_choice%fill,    info)
+      call sprec%set('sub_iluthrs',     real(p_choice%thr, kind = psb_spk_),     info)
 
-      case ('ML')
-        ! multilevel spreconditioner
-        call sprec%set('ml_cycle',         p_choice%mlcycle,       info)
-        call sprec%set('outer_sweeps',     p_choice%outer_sweeps,  info)
-        if (p_choice%csizepp > 0) &
-          & call sprec%set('min_coarse_size_per_process',  p_choice%csizepp,   info)
-        if (p_choice%mncrratio > 1) &
-          & call sprec%set('min_cr_ratio',                 p_choice%mncrratio, info)
-        if (p_choice%maxlevs > 0) &
-          & call sprec%set('max_levs',                     p_choice%maxlevs,   info)
-        if (p_choice%athres  >= dzero) &
-          & call sprec%set('aggr_thresh',                  p_choice%athres,    info)
-        if (p_choice%thrvsz > 0) then
-          do k = 1, min(p_choice%thrvsz, size(sprec%sprecv) - 1)
-            call sprec%set('aggr_thresh',                    p_choice%athresv(k),  info, ilev = (k+1))
-          end do
-        end if
+    case ('ML')
+      ! multilevel preconditioner
 
-        call sprec%set('aggr_prol',        p_choice%aggr_prol,     info)
-        call sprec%set('par_aggr_alg',     p_choice%par_aggr_alg,  info)
-        call sprec%set('aggr_type',        p_choice%aggr_type,     info)
-        call sprec%set('aggr_size',        p_choice%aggr_size,     info)
+      call sprec%set('ml_cycle',        p_choice%mlcycle,    info)
+      call sprec%set('outer_sweeps',    p_choice%outer_sweeps, info)
+      if (p_choice%csizepp>0)&
+          & call sprec%set('min_coarse_size_per_process', p_choice%csizepp,    info)
+      if (p_choice%mncrratio>1)&
+          & call sprec%set('min_cr_ratio',   real(p_choice%mncrratio, kind = psb_spk_), info)
+      if (p_choice%maxlevs>0)&
+          & call sprec%set('max_levs',    p_choice%maxlevs,    info)
+      if (p_choice%athres >= dzero) &
+          & call sprec%set('aggr_thresh',     real(p_choice%athres, kind = psb_spk_),  info)
+      if (p_choice%thrvsz>0) then
+        do k=1, min(p_choice%thrvsz, size(sprec%precv)-1)
+          call sprec%set('aggr_thresh',     real(p_choice%athresv(k), kind = psb_spk_),  info, ilev=(k+1))
+        end do
+      end if
 
-        call sprec%set('aggr_ord',         p_choice%aggr_ord,      info)
-        call sprec%set('aggr_filter',      p_choice%aggr_filter,   info)
+      call sprec%set('aggr_prol',       p_choice%aggr_prol,   info)
+      call sprec%set('par_aggr_alg',    p_choice%par_aggr_alg,   info)
+      call sprec%set('aggr_type',       p_choice%aggr_type, info)
+      call sprec%set('aggr_size',       p_choice%aggr_size, info)
 
-        call sprec%set('smoother_type',    p_choice%smther,        info)
-        call sprec%set('smoother_sweeps',  p_choice%jsweeps,       info)
-        call sprec%set('poly_degree',      p_choice%degree,        info)
-        call sprec%set('poly_variant',     p_choice%pvariant,      info)
+      call sprec%set('aggr_ord',        p_choice%aggr_ord,   info)
+      call sprec%set('aggr_filter',     p_choice%aggr_filter, info)
 
-        if (p_choice%prhovalue > dzero) then
-          call sprec%set('poly_rho_ba',        p_choice%prhovalue,   info)
-        else
-          call sprec%set('poly_rho_estimate',  p_choice%prhovariant, info)
-        end if
+
+      call sprec%set('smoother_type',   p_choice%smther,     info)
+      call sprec%set('smoother_sweeps', p_choice%jsweeps,    info)
+      call sprec%set('poly_degree',     p_choice%degree,    info)
+      call sprec%set('poly_variant',    p_choice%pvariant,  info)
+      if (p_choice%prhovalue > dzero ) then
+              call sprec%set('poly_rho_ba', real(p_choice%prhovalue, kind = psb_spk_), info)
+      else
+              call sprec%set('poly_rho_estimate', p_choice%prhovariant, info)
+      end if
 
       select case (psb_toupper(p_choice%smther))
-        case ('GS', 'BWGS', 'FBGS', 'JACOBI', 'L1-JACOBI', 'L1-FBGS')
-          ! do nothing
+      case ('GS', 'BWGS', 'FBGS', 'JACOBI', 'L1-JACOBI', 'L1-FBGS')
+        ! do nothing
+      case default
+        call sprec%set('sub_ovr',         p_choice%novr,       info)
+        call sprec%set('sub_restr',       p_choice%restr,      info)
+        call sprec%set('sub_prol',        p_choice%prol,       info)
+        select case(trim(psb_toupper(p_choice%solve)))
+        case('INVK')
+          call sprec%set('sub_solve',       p_choice%solve,   info)
+        case('INVT')
+          call sprec%set('sub_solve',       p_choice%solve,   info)
+        case('AINV')
+          call sprec%set('sub_solve',       p_choice%solve,   info)
+          call sprec%set('ainv_alg', p_choice%variant,   info)
         case default
-          call sprec%set('sub_ovr',        p_choice%novr,  info)
-          call sprec%set('sub_restr',      p_choice%restr, info)
-          call sprec%set('sub_prol',       p_choice%prol,  info)
+          call sprec%set('sub_solve',       p_choice%solve,   info)
+          if (psb_toupper(p_choice%solve)=='MUMPS') &
+              & call sprec%set('mumps_loc_glob', 'local_solver', info)
+        end select
 
-          select case(trim(psb_toupper(p_choice%solve)))
-            case('INVK')
-              call sprec%set('sub_solve',  p_choice%solve,   info)
-
-            case('INVT')
-              call sprec%set('sub_solve',  p_choice%solve,   info)
-
-            case('AINV')
-              call sprec%set('sub_solve',  p_choice%solve,   info)
-              call sprec%set('ainv_alg',   p_choice%variant, info)
-
-            case default
-              call sprec%set('sub_solve',  p_choice%solve,   info)
-              if (psb_toupper(p_choice%solve) == 'MUMPS') &
-                & call sprec%set('mumps_loc_glob', 'local_solver', info)
-          end select
-
-          call sprec%set('solver_sweeps',  p_choice%ssweeps, info)
-          call sprec%set('sub_fillin',     p_choice%fill,    info)
-          call sprec%set('inv_fillin',     p_choice%invfill, info)
-          call sprec%set('sub_iluthrs',    p_choice%thr,     info)
+        call sprec%set('solver_sweeps',   p_choice%ssweeps,   info)
+        call sprec%set('sub_fillin',      p_choice%fill,       info)
+        call sprec%set('inv_fillin',      p_choice%invfill,    info)
+        call sprec%set('sub_iluthrs',     real(p_choice%thr, kind = psb_spk_),        info)
       end select
 
       if (psb_toupper(p_choice%smther2) /= 'NONE') then
@@ -452,64 +449,59 @@ program amg_d_pde3d
         call sprec%set('smoother_sweeps', p_choice%jsweeps2,  info, pos = 'post')
         call sprec%set('poly_degree',     p_choice%degree2,   info, pos = 'post')
         call sprec%set('poly_variant',    p_choice%pvariant2, info, pos = 'post')
-
-        if (p_choice%prhovalue > dzero) then
-          call sprec%set('poly_rho_ba',       p_choice%prhovalue2,    info, pos = 'post')
+        if (p_choice%prhovalue > dzero ) then
+          call sprec%set('poly_rho_ba', real(p_choice%prhovalue2, kind = psb_spk_), info, pos = 'post')
         else
-          call sprec%set('poly_rho_estimate', p_choice%prhovariant2,  info, pos = 'post')
+          call sprec%set('poly_rho_estimate', p_choice%prhovariant2, info, pos = 'post')
         end if
 
         select case (psb_toupper(p_choice%smther2))
-          case ('GS', 'BWGS', 'FBGS', 'JACOBI', 'L1-JACOBI', 'L1-FBGS')
-            ! do nothing
+        case ('GS', 'BWGS', 'FBGS', 'JACOBI', 'L1-JACOBI', 'L1-FBGS')
+          ! do nothing
+        case default
+          call sprec%set('sub_ovr',         p_choice%novr2,     info, pos = 'post')
+          call sprec%set('sub_restr',       p_choice%restr2,    info, pos = 'post')
+          call sprec%set('sub_prol',        p_choice%prol2,     info, pos = 'post')
+          select case(trim(psb_toupper(p_choice%solve2)))
+          case('INVK')
+            call sprec%set('sub_solve',       p_choice%solve2,   info)
+          case('INVT')
+            call sprec%set('sub_solve',       p_choice%solve2,   info)
+          case('AINV')
+            call sprec%set('sub_solve',       p_choice%solve2,   info)
+            call sprec%set('ainv_alg', p_choice%variant2,   info)
           case default
-            call sprec%set('sub_ovr',        p_choice%novr2,     info, pos = 'post')
-            call sprec%set('sub_restr',      p_choice%restr2,    info, pos = 'post')
-            call sprec%set('sub_prol',       p_choice%prol2,     info, pos = 'post')
-            select case(trim(psb_toupper(p_choice%solve2)))
-              case('INVK')
-                call sprec%set('sub_solve',  p_choice%solve2,    info)
-
-              case('INVT')
-                call sprec%set('sub_solve',  p_choice%solve2,    info)
-
-              case('AINV')
-                call sprec%set('sub_solve',  p_choice%solve2,    info)
-                call sprec%set('ainv_alg',   p_choice%variant2,  info)
-
-              case default
-                call sprec%set('sub_solve',  p_choice%solve2,    info, pos = 'post')
-                if (psb_toupper(p_choice%solve2) == 'MUMPS') &
-                    & call sprec%set('mumps_loc_glob', 'local_solver', info)
-            end select
-
-            call sprec%set('solver_sweeps',  p_choice%ssweeps2,  info, pos = 'post')
-            call sprec%set('sub_fillin',     p_choice%fill2,     info, pos = 'post')
-            call sprec%set('inv_fillin',     p_choice%invfill2,  info, pos = 'post')
-            call sprec%set('sub_iluthrs',    p_choice%thr2,      info, pos = 'post')
+            call sprec%set('sub_solve',       p_choice%solve2,   info, pos = 'post')
+            if (psb_toupper(p_choice%solve2)=='MUMPS') &
+                & call sprec%set('mumps_loc_glob', 'local_solver', info)
+          end select
+          call sprec%set('solver_sweeps',   p_choice%ssweeps2,   info, pos = 'post')
+          call sprec%set('sub_fillin',      p_choice%fill2,     info, pos = 'post')
+          call sprec%set('inv_fillin',      p_choice%invfill2,  info, pos = 'post')
+          call sprec%set('sub_iluthrs',     real(p_choice%thr2, kind = psb_spk_),      info, pos = 'post')
         end select
       end if
 
-      call sprec%set('coarse_solve',     p_choice%csolve,        info)
-      call sprec%set('coarse_mat',       p_choice%cmat,          info)
+      call sprec%set('coarse_solve',    p_choice%csolve,    info)
+      call sprec%set('coarse_mat',      p_choice%cmat,      info)
       ! Set for the case of a KRM solver
       if (psb_toupper(p_choice%csolve) == 'KRM') then
-        call sprec%set('krm_method',     p_choice%krm_method,    info)
-        call sprec%set('krm_ksprec',      p_choice%krm_sprec,      info)
-        call sprec%set('krm_sub_solve',  p_choice%krm_subsolve,  info)
-        call sprec%set('krm_global',     p_choice%krm_global,    info)
-        call sprec%set('krm_eps',        p_choice%krm_eps,       info)
-        call sprec%set('krm_irst',       p_choice%krm_irst,      info)
-        call sprec%set('krm_istopc',     p_choice%krm_istop,     info)
-        call sprec%set('krm_itmax',      p_choice%krm_itmax,     info)
-        call sprec%set('krm_itrace',     p_choice%krm_itrace,    info)
-        call sprec%set('krm_fillin',     p_choice%krm_fillin,    info)
+        call sprec%set('krm_method', p_choice%krm_method, info)
+        call sprec%set('krm_kprec', p_choice%krm_prec,   info)
+        call sprec%set('krm_sub_solve', p_choice%krm_subsolve, info)
+        call sprec%set('krm_global', p_choice%krm_global, info)
+        call sprec%set('krm_eps',   real(p_choice%krm_eps, kind = psb_spk_),   info)
+        call sprec%set('krm_irst',   p_choice%krm_irst,   info)
+        call sprec%set('krm_istopc',  p_choice%krm_istop,  info)
+        call sprec%set('krm_itmax',  p_choice%krm_itmax,  info)
+        call sprec%set('krm_itrace', p_choice%krm_itrace, info)
+        call sprec%set('krm_fillin', p_choice%krm_fillin, info)
       else
         if (psb_toupper(p_choice%csolve) == 'BJAC') &
-          & call sprec%set('coarse_subsolve', p_choice%csbsolve,     info)
-        call sprec%set('coarse_fillin',  p_choice%cfill,         info)
-        call sprec%set('coarse_iluthrs', p_choice%cthres,        info)
-        call sprec%set('coarse_sweeps',  p_choice%cjswp,         info)
+          &  call sprec%set('coarse_subsolve', p_choice%csbsolve,  info)
+        call sprec%set('coarse_fillin',   p_choice%cfill,     info)
+        call sprec%set('coarse_iluthrs',  real(p_choice%cthres, kind = psb_spk_),    info)
+        call sprec%set('coarse_sweeps',   p_choice%cjswp,     info)
       end if
     end select
 
@@ -522,11 +514,10 @@ program amg_d_pde3d
       call psb_errpush(psb_err_from_subroutine_, name, a_err = 'amg_hierarchy_bld')
       goto 9999
     end if
-
     call psb_barrier(ctxt)
     t1 = psb_wtime()
-    call prec%smoothers_build(asingle, desc_a, info, amold=smold)
-    tsmth = psb_wtime() - t1
+    call sprec%smoothers_build(asingle, desc_a, info)
+    tsmth = psb_wtime() - t1 
     if (info /= psb_success_) then
       call psb_errpush(psb_err_from_subroutine_, name, a_err = 'amg_smoothers_bld')
       goto 9999
@@ -547,23 +538,23 @@ program amg_d_pde3d
     !
     ! initialize the preconditioner
     !
-    call prec%init(ctxt,p_choice%ptype,info)
+    call prec%init(ctxt, p_choice%ptype, info)
     select case(trim(psb_toupper(p_choice%ptype)))
-    case ('NONE','NOPREC')
+    case ('NONE', 'NOPREC')
       ! Do nothing, keep defaults
 
-    case ('JACOBI','L1-JACOBI','GS','FWGS','FBGS')
+    case ('JACOBI', 'L1-JACOBI', 'GS', 'FWGS', 'FBGS')
       ! 1-level sweeps from "outer_sweeps"
       call prec%set('smoother_sweeps', p_choice%jsweeps, info)
 
-    case ('BJAC','POLY')
+    case ('BJAC', 'POLY')
       call prec%set('smoother_sweeps', p_choice%jsweeps, info)
       call prec%set('sub_solve',       p_choice%solve,   info)
       call prec%set('solver_sweeps',   p_choice%ssweeps,   info)
       call prec%set('poly_degree',     p_choice%degree,    info)
       call prec%set('poly_variant',    p_choice%pvariant,  info)
       if (psb_toupper(p_choice%solve)=='MUMPS') &
-          & call prec%set('mumps_loc_glob','local_solver',info)
+          & call prec%set('mumps_loc_glob', 'local_solver', info)
       call prec%set('sub_fillin',      p_choice%fill,    info)
       call prec%set('sub_iluthrs',     p_choice%thr,     info)
 
@@ -575,7 +566,7 @@ program amg_d_pde3d
       call prec%set('sub_solve',       p_choice%solve,   info)
       call prec%set('solver_sweeps',   p_choice%ssweeps,   info)
       if (psb_toupper(p_choice%solve)=='MUMPS') &
-          & call prec%set('mumps_loc_glob','local_solver',info)
+          & call prec%set('mumps_loc_glob', 'local_solver', info)
       call prec%set('sub_fillin',      p_choice%fill,    info)
       call prec%set('sub_iluthrs',     p_choice%thr,     info)
 
@@ -583,7 +574,7 @@ program amg_d_pde3d
       ! multilevel preconditioner
 
       call prec%set('ml_cycle',        p_choice%mlcycle,    info)
-      call prec%set('outer_sweeps',    p_choice%outer_sweeps,info)
+      call prec%set('outer_sweeps',    p_choice%outer_sweeps, info)
       if (p_choice%csizepp>0)&
           & call prec%set('min_coarse_size_per_process', p_choice%csizepp,    info)
       if (p_choice%mncrratio>1)&
@@ -593,8 +584,8 @@ program amg_d_pde3d
       if (p_choice%athres >= dzero) &
           & call prec%set('aggr_thresh',     p_choice%athres,  info)
       if (p_choice%thrvsz>0) then
-        do k=1,min(p_choice%thrvsz,size(prec%precv)-1)
-          call prec%set('aggr_thresh',     p_choice%athresv(k),  info,ilev=(k+1))
+        do k=1, min(p_choice%thrvsz, size(prec%precv)-1)
+          call prec%set('aggr_thresh',     p_choice%athresv(k),  info, ilev=(k+1))
         end do
       end if
 
@@ -604,7 +595,7 @@ program amg_d_pde3d
       call prec%set('aggr_size',       p_choice%aggr_size, info)
 
       call prec%set('aggr_ord',        p_choice%aggr_ord,   info)
-      call prec%set('aggr_filter',     p_choice%aggr_filter,info)
+      call prec%set('aggr_filter',     p_choice%aggr_filter, info)
 
 
       call prec%set('smoother_type',   p_choice%smther,     info)
@@ -618,7 +609,7 @@ program amg_d_pde3d
       end if
 
       select case (psb_toupper(p_choice%smther))
-      case ('GS','BWGS','FBGS','JACOBI','L1-JACOBI','L1-FBGS')
+      case ('GS', 'BWGS', 'FBGS', 'JACOBI', 'L1-JACOBI', 'L1-FBGS')
         ! do nothing
       case default
         call prec%set('sub_ovr',         p_choice%novr,       info)
@@ -635,7 +626,7 @@ program amg_d_pde3d
         case default
           call prec%set('sub_solve',       p_choice%solve,   info)
           if (psb_toupper(p_choice%solve)=='MUMPS') &
-              & call prec%set('mumps_loc_glob','local_solver',info)
+              & call prec%set('mumps_loc_glob', 'local_solver', info)
         end select
         call prec%set('solver_sweeps',   p_choice%ssweeps,   info)
         call prec%set('sub_fillin',      p_choice%fill,       info)
@@ -644,23 +635,23 @@ program amg_d_pde3d
       end select
 
       if (psb_toupper(p_choice%smther2) /= 'NONE') then
-        call prec%set('smoother_type',   p_choice%smther2,   info,pos='post')
-        call prec%set('smoother_sweeps', p_choice%jsweeps2,  info,pos='post')
-        call prec%set('poly_degree',     p_choice%degree2,   info,pos='post')
-        call prec%set('poly_variant',    p_choice%pvariant2, info,pos='post')
+        call prec%set('smoother_type',   p_choice%smther2,   info, pos = 'post')
+        call prec%set('smoother_sweeps', p_choice%jsweeps2,  info, pos = 'post')
+        call prec%set('poly_degree',     p_choice%degree2,   info, pos = 'post')
+        call prec%set('poly_variant',    p_choice%pvariant2, info, pos = 'post')
         if (p_choice%prhovalue > dzero ) then
-          call prec%set('poly_rho_ba', p_choice%prhovalue2, info,pos='post')
+          call prec%set('poly_rho_ba', p_choice%prhovalue2, info, pos = 'post')
         else
-          call prec%set('poly_rho_estimate', p_choice%prhovariant2, info,pos='post')
+          call prec%set('poly_rho_estimate', p_choice%prhovariant2, info, pos = 'post')
         end if
 
         select case (psb_toupper(p_choice%smther2))
-        case ('GS','BWGS','FBGS','JACOBI','L1-JACOBI','L1-FBGS')
+        case ('GS', 'BWGS', 'FBGS', 'JACOBI', 'L1-JACOBI', 'L1-FBGS')
           ! do nothing
         case default
-          call prec%set('sub_ovr',         p_choice%novr2,     info,pos='post')
-          call prec%set('sub_restr',       p_choice%restr2,    info,pos='post')
-          call prec%set('sub_prol',        p_choice%prol2,     info,pos='post')
+          call prec%set('sub_ovr',         p_choice%novr2,     info, pos = 'post')
+          call prec%set('sub_restr',       p_choice%restr2,    info, pos = 'post')
+          call prec%set('sub_prol',        p_choice%prol2,     info, pos = 'post')
           select case(trim(psb_toupper(p_choice%solve2)))
           case('INVK')
             call prec%set('sub_solve',       p_choice%solve2,   info)
@@ -670,14 +661,14 @@ program amg_d_pde3d
             call prec%set('sub_solve',       p_choice%solve2,   info)
             call prec%set('ainv_alg', p_choice%variant2,   info)
           case default
-            call prec%set('sub_solve',       p_choice%solve2,   info, pos='post')
+            call prec%set('sub_solve',       p_choice%solve2,   info, pos = 'post')
             if (psb_toupper(p_choice%solve2)=='MUMPS') &
-                & call prec%set('mumps_loc_glob','local_solver',info)
+                & call prec%set('mumps_loc_glob', 'local_solver', info)
           end select
-          call prec%set('solver_sweeps',   p_choice%ssweeps2,   info,pos='post')
-          call prec%set('sub_fillin',      p_choice%fill2,     info,pos='post')
-          call prec%set('inv_fillin',      p_choice%invfill2,  info,pos='post')
-          call prec%set('sub_iluthrs',     p_choice%thr2,      info,pos='post')
+          call prec%set('solver_sweeps',   p_choice%ssweeps2,   info, pos = 'post')
+          call prec%set('sub_fillin',      p_choice%fill2,     info, pos = 'post')
+          call prec%set('inv_fillin',      p_choice%invfill2,  info, pos = 'post')
+          call prec%set('sub_iluthrs',     p_choice%thr2,      info, pos = 'post')
         end select
       end if
 
@@ -706,18 +697,18 @@ program amg_d_pde3d
     ! build the preconditioner
     call psb_barrier(ctxt)
     t1 = psb_wtime()
-    call prec%hierarchy_build(a,desc_a,info)
+    call prec%hierarchy_build(a, desc_a, info)
     thier = psb_wtime()-t1
     if (info /= psb_success_) then
-      call psb_errpush(psb_err_from_subroutine_,name,a_err='amg_hierarchy_bld')
+      call psb_errpush(psb_err_from_subroutine_, name, a_err = 'amg_hierarchy_bld')
       goto 9999
     end if
     call psb_barrier(ctxt)
     t1 = psb_wtime()
-    call prec%smoothers_build(a,desc_a,info,amold=dmold)
+    call prec%smoothers_build(a, desc_a, info, amold=dmold)
     tsmth = psb_wtime()-t1
     if (info /= psb_success_) then
-      call psb_errpush(psb_err_from_subroutine_,name,a_err='amg_smoothers_bld')
+      call psb_errpush(psb_err_from_subroutine_, name, a_err = 'amg_smoothers_bld')
       goto 9999
     end if
 
@@ -725,22 +716,22 @@ program amg_d_pde3d
     call psb_amx(ctxt, tsmth)
     
     if(iam == psb_root_) then
-      write(psb_out_unit,'(" ")')
-      write(psb_out_unit,'("Preconditioner: ",a)') trim(p_choice%descr)
-      write(psb_out_unit,'("Preconditioner time: ",es12.5)')  thier+tsmth,thier,tsmth
-      write(psb_out_unit,'(" ")')
+      write(psb_out_unit, '(" ")')
+      write(psb_out_unit, '("Preconditioner: ", a)') trim(p_choice%descr)
+      write(psb_out_unit, '("Preconditioner time: ", es12.5)')  thier+tsmth, thier, tsmth
+      write(psb_out_unit, '(" ")')
     end if
   end if
 
   if (p_choice%dump) then
     if (mixed) then
-      call sprec%dump(info,istart=p_choice%dlmin,iend=p_choice%dlmax,&
-           & ac=p_choice%dump_ac,rp=p_choice%dump_rp,tprol=p_choice%dump_tprol,&
+      call sprec%dump(info, istart=p_choice%dlmin, iend=p_choice%dlmax, &
+           & ac=p_choice%dump_ac, rp=p_choice%dump_rp, tprol=p_choice%dump_tprol, &
            & smoother=p_choice%dump_smoother, solver=p_choice%dump_solver, &
            & global_num=p_choice%dump_global_num)
     else
-      call prec%dump(info,istart=p_choice%dlmin,iend=p_choice%dlmax,&
-           & ac=p_choice%dump_ac,rp=p_choice%dump_rp,tprol=p_choice%dump_tprol,&
+      call prec%dump(info, istart=p_choice%dlmin, iend=p_choice%dlmax, &
+           & ac=p_choice%dump_ac, rp=p_choice%dump_rp, tprol=p_choice%dump_tprol, &
            & smoother=p_choice%dump_smoother, solver=p_choice%dump_solver, &
            & global_num=p_choice%dump_global_num)
     end if
@@ -770,26 +761,26 @@ program amg_d_pde3d
   t1 = psb_wtime()
   select case(psb_toupper(trim(s_choice%kmethd)))
     case('RICHARDSON')
-      call psb_richardson(a,prec,b,x,s_choice%eps,&
-         & desc_a,info,itmax=s_choice%itmax,iter=iter,&
-         & err=err,itrace=s_choice%itrace,&
+      call psb_richardson(a, prec, b, x, s_choice%eps, &
+         & desc_a, info, itmax=s_choice%itmax, iter=iter, &
+         & err=err, itrace=s_choice%itrace, &
          & istop=s_choice%istopc)
 
     case('BICGSTAB', 'BICGSTABL', 'BICG', 'CG', 'CGS', 'FCG', 'GCR', 'RGMRES', 'SSTEPCG', 'SSTEPCG1')
-       call psb_krylov(s_choice%kmethd,a,prec,b,x,s_choice%eps,&
-         & desc_a,info,itmax=s_choice%itmax,iter=iter,err=err,itrace=s_choice%itrace,&
-         & istop=s_choice%istopc,irst=s_choice%irst)
+       call psb_krylov(s_choice%kmethd, a, prec, b, x, s_choice%eps, &
+         & desc_a, info, itmax=s_choice%itmax, iter=iter, err=err, itrace=s_choice%itrace, &
+         & istop=s_choice%istopc, irst=s_choice%irst)
 
-    case('CG-MIXED','CGMIXED')
+    case('CG-MIXED', 'CGMIXED')
       !
       ! Double precision CG with the single precision preconditioner
       ! built above on ASINGLE; see psb_cg_mixed_mod at the top of this file.
       !
-      call psb_cg_mixed(a,sprec,b,x,s_choice%eps,&
-          & desc_a,info,itmax=s_choice%itmax,iter=iter,err=err,&
-          & itrace=s_choice%itrace,istop=s_choice%istopc)
+      call psb_cg_mixed(a, sprec, b, x, s_choice%eps, &
+          & desc_a, info, itmax=s_choice%itmax, iter=iter, err=err, &
+          & itrace=s_choice%itrace, istop=s_choice%istopc)
 
-    case('SSTEPCG1-MIXED','SSTEPCG1MIXED')
+    case('SSTEPCG1-MIXED', 'SSTEPCG1MIXED')
       !
       ! Double precision CG with the single precision preconditioner
       ! built above on ASINGLE; see psb_cg_mixed_mod at the top of this file.
@@ -799,7 +790,7 @@ program amg_d_pde3d
                         & itrace = s_choice%itrace, istop = s_choice%istopc, &
                         & base_type = s_choice%base_type, eigext = eigext)
 
-    case('SSTEPCG-MIXED','SSTEPCGMIXED')
+    case('SSTEPCG-MIXED', 'SSTEPCGMIXED')
       !
       ! Double precision CG with the single precision preconditioner
       ! built above on ASINGLE; see psb_cg_mixed_mod at the top of this file.
@@ -857,9 +848,9 @@ program amg_d_pde3d
 
   system_size = desc_a%get_global_rows()
   if (mixed) then
-    call sprec%descr(info,iout=psb_out_unit)
+    call sprec%descr(info, iout=psb_out_unit)
   else
-    call prec%descr(info,iout=psb_out_unit)
+    call prec%descr(info, iout=psb_out_unit)
   end if
   if (iam == psb_root_) then
     write(psb_out_unit, '("Computed solution on ", i8, " process(es)")')     np
@@ -880,13 +871,13 @@ program amg_d_pde3d
       write(psb_out_unit, '("step size s                         : ", i2)')   s_choice%steps
     end if
 
-    write(psb_out_unit,'("Preconditioner                     : ",a)') trim(p_choice%descr)
-    write(psb_out_unit,'("Iterations to convergence          : ",i12)')    iter
-    write(psb_out_unit,'("Relative error estimate on exit    : ",es12.5)') err
-    write(psb_out_unit,'("Number of levels in hierarchy      : ",i12)')    nlv
-    write(psb_out_unit,'("Time to build hierarchy            : ",es12.5)') thier
-    write(psb_out_unit,'("Time to build smoothers            : ",es12.5)') tsmth
-    write(psb_out_unit,'("Total preconditioner setup time    : ",es12.5)') tsmth+thier
+    write(psb_out_unit, '("Preconditioner                     : ", a)') trim(p_choice%descr)
+    write(psb_out_unit, '("Iterations to convergence          : ", i12)')    iter
+    write(psb_out_unit, '("Relative error estimate on exit    : ", es12.5)') err
+    write(psb_out_unit, '("Number of levels in hierarchy      : ", i12)')    nlv
+    write(psb_out_unit, '("Time to build hierarchy            : ", es12.5)') thier
+    write(psb_out_unit, '("Time to build smoothers            : ", es12.5)') tsmth
+    write(psb_out_unit, '("Total preconditioner setup time    : ", es12.5)') tsmth+thier
 
     if(((psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCG') .or. &
       & (psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCG1') .or. &
@@ -897,11 +888,11 @@ program amg_d_pde3d
       write(psb_out_unit, '("Time to estimate the extreme eigv   : ", es12.5)') tstpm
     end if
 
-    write(psb_out_unit,'("Time to solve system               : ",es12.5)') tslv
-    write(psb_out_unit,'("Time per iteration                 : ",es12.5)') tslv/iter
-    write(psb_out_unit,'("Total time                         : ",es12.5)') tslv+tsmth+thier
-    write(psb_out_unit,'("Residual 2-norm                    : ",es12.5)') resmx
-    write(psb_out_unit,'("Residual inf-norm                  : ",es12.5)') resmxp
+    write(psb_out_unit, '("Time to solve system               : ", es12.5)') tslv
+    write(psb_out_unit, '("Time per iteration                 : ", es12.5)') tslv/iter
+    write(psb_out_unit, '("Total time                         : ", es12.5)') tslv+tsmth+thier
+    write(psb_out_unit, '("Residual 2-norm                    : ", es12.5)') resmx
+    write(psb_out_unit, '("Residual inf-norm                  : ", es12.5)') resmxp
     write(psb_out_unit, '("Total memory occupation for X       : ", i16)')    vecsize
     write(psb_out_unit, '("Total memory occupation for A       : ", i16)')    amatsize
     write(psb_out_unit, '("Total memory occupation for DESC_A  : ", i16)')    descsize
@@ -921,7 +912,7 @@ program amg_d_pde3d
   call psb_spfree(a, desc_a, info)
   if (mixed) then
     call sprec%free(info)
-    call psb_spfree(asingle,desc_a,info)
+    call psb_spfree(asingle, desc_a, info)
   else
     call prec%free(info)
   end if
@@ -1099,8 +1090,8 @@ contains
     call psb_bcast(ctxt, solve%steps)
     call psb_bcast(ctxt, solve%base_type)
 
-    call psb_bcast(ctxt,prec%descr)
-    call psb_bcast(ctxt,prec%ptype)
+    call psb_bcast(ctxt, prec%descr)
+    call psb_bcast(ctxt, prec%ptype)
 
     ! broadcast first (pre-)smoother / 1-lev prec data
     call psb_bcast(ctxt, prec%smther)

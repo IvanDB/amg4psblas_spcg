@@ -993,7 +993,7 @@ contains
 		end if
 
 		!Allocate and assembly data structure
-		allocate(alpha(s), beta(s, s), W(s, s), pW(s), temp_fa(s, 2*s + 1), B2(s, s), c0(s), aux_fa(4*n_col), stat = info)
+		allocate(alpha(s), beta(s, s), W(s, s), pW(s), temp_fa(s, 2*s + 1), B2(s, s), c0(s), aux_fa(4*n_col), aux_sa(4*n_col), stat = info)
 		if(info == psb_success_) call psb_geall(r, desc_a, info)
 		if(info == psb_success_) call psb_geall(v_single, desc_a, info)
 		if(info == psb_success_) call psb_geall(Z, desc_a, info, n = s)
@@ -1148,7 +1148,7 @@ contains
 		if(info == psb_success_) call psb_gefree(temp_mv, desc_a, info)
 		if(info == psb_success_) call psb_gefree(aux_mv, desc_a, info)
 
-		if(info == psb_success_) deallocate(alpha, beta, W, pW, temp_fa, B2, c0, aux_fa, stat = info)
+		if(info == psb_success_) deallocate(alpha, beta, W, pW, temp_fa, B2, c0, aux_fa, aux_sa, stat = info)
 		if(info /= psb_success_) then
 			call psb_errpush(info, name)
 			goto 9999

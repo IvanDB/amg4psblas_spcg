@@ -278,7 +278,7 @@ program amg_d_pde3d
   !  other methods the double precision one.
   !
   select case(psb_toupper(trim(s_choice%kmethd)))
-    case('CG-MIXED', 'CGMIXED', 'SSTEPCG-MIXED', 'SSTEPCGMIXED')
+    case('CG-MIXED', 'CGMIXED', 'SSTEPCG-MIXED', 'SSTEPCGMIXED', , 'SSTEPCG1-MIXED', 'SSTEPCG1MIXED')
       mixed = .true.
     case default
       mixed = .false.

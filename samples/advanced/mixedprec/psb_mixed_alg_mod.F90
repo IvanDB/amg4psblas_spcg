@@ -629,7 +629,8 @@ contains
 		end if
 
 		!Allocate and assembly data structure
-		allocate(alpha(s), beta(s, s), W(s, s), pW(s), temp_fa(s, s + 1), aux_fa(4*n_col), aux_sa(4*n_col), stat = info)
+		allocate(alpha(s), beta(s, s), W(s, s), pW(s), &
+						& temp_fa(s, s + 1), aux_fa(4*n_col), aux_sa(4*n_col), stat = info)
 		if(info == psb_success_) call psb_geall(r, desc_a, info)
 		if(info == psb_success_) call psb_geall(v_single, desc_a, info)
 		if(info == psb_success_) call psb_geall(Z, desc_a, info, n = s)
@@ -993,7 +994,8 @@ contains
 		end if
 
 		!Allocate and assembly data structure
-		allocate(alpha(s), beta(s, s), W(s, s), pW(s), temp_fa(s, 2*s + 1), B2(s, s), c0(s), aux_fa(4*n_col), aux_sa(4*n_col), stat = info)
+		allocate(alpha(s), beta(s, s), W(s, s), pW(s), temp_fa(s, 2*s + 1), B2(s, s), c0(s), &
+						& aux_fa(4*n_col), aux_sa(4*n_col), stat = info)
 		if(info == psb_success_) call psb_geall(r, desc_a, info)
 		if(info == psb_success_) call psb_geall(v_single, desc_a, info)
 		if(info == psb_success_) call psb_geall(Z, desc_a, info, n = s)

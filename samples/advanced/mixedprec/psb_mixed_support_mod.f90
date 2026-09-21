@@ -162,6 +162,7 @@ contains
 
   subroutine psb_d2s_mvect_col(dv, idx, sv, info, mold)
     class(psb_d_multivect_type), intent(inout) :: dv
+    integer(psb_ipk_), intent(in)         :: idx 
     class(psb_s_vect_type), intent(inout) :: sv
     integer(psb_ipk_), intent(out)        :: info    
     class(psb_s_base_vect_type), intent(in), optional :: mold
@@ -175,6 +176,7 @@ contains
 
   subroutine psb_s2d_mvect_col(sv, dv, idx, info, mold)
     class(psb_s_vect_type), intent(inout) :: sv
+    integer(psb_ipk_), intent(in)         :: idx 
     class(psb_d_multivect_type), intent(inout) :: dv
     integer(psb_ipk_), intent(out)        :: info    
     class(psb_d_base_multivect_type), intent(in), optional :: mold

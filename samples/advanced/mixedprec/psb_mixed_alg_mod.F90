@@ -415,9 +415,9 @@ contains
 					! First iteration
 					idx_Z = 1
 					
-					call psb_d2s_mvect_col(Q, idx_Q, vec_single, desc, info)
+					call psb_d2s_mvect_col(Q, idx_Q, vec_single, info)
 					call prec%apply(vec_single, desc, info, work = saux)
-					call psb_s2d_mvect_col(vec_single, Z, idx_Z, desc, info)
+					call psb_s2d_mvect_col(vec_single, Z, idx_Z, info)
 
 					idx_Q = merge(idx_Q + 1, idx_Q, save_r) !If not save_r overwrite it with the first vector
 					call psb_spmm(done, spmat, Z, idx_Z, dzero, Q, idx_Q, desc, info, work = aux)
@@ -426,7 +426,7 @@ contains
 
 					do i = 2, s
 							idx_Z = idx_Z + 1
-							call psb_d2s_mvect_col(Q, idx_Q, vec_single, desc, info)
+							call psb_d2s_mvect_col(Q, idx_Q, vec_single, info)
 							call prec%apply(vec_single, desc, info, work = saux)
 							call psb_s2d_mvect_col(vec_single, Z, idx_Z, desc, info)
 							
@@ -460,9 +460,9 @@ contains
 					! First iteration
 					idx_Z = 1 
 					! call prec%apply(mvec_tmp, ind_tmp, Z, idx_Z, desc, info, work = aux)
-					call psb_d2s_mvect_col(mvec_tmp, ind_tmp, vec_single, desc, info)
+					call psb_d2s_mvect_col(mvec_tmp, ind_tmp, vec_single, info)
 					call prec%apply(vec_single, desc, info, work = saux)
-					call psb_s2d_mvect_col(vec_single, Z, idx_Z, desc, info)
+					call psb_s2d_mvect_col(vec_single, Z, idx_Z, info)
 
 					idx_Q = merge(idx_Q + 1, idx_Q, save_r) !If not save_r overwrite it with the first vector
 					call psb_spmm(done, spmat, Z, idx_Z, dzero, Q, idx_Q, desc, info, work = aux)
@@ -476,9 +476,9 @@ contains
 					idx_Z = idx_Z + 1
 
 					!call prec%apply(mvec_tmp, ind_tmp, Z, idx_Z, desc, info, work = aux)
-					call psb_d2s_mvect_col(mvec_tmp, ind_tmp, vec_single, desc, info)
+					call psb_d2s_mvect_col(mvec_tmp, ind_tmp, vec_single, info)
 					call prec%apply(vec_single, desc, info, work = saux)
-					call psb_s2d_mvect_col(vec_single, Z, idx_Z, desc, info)
+					call psb_s2d_mvect_col(vec_single, Z, idx_Z, info)
 					
 					idx_Q = idx_Q + 1
 					call psb_spmm(done, spmat, Z, idx_Z, dzero, Q, idx_Q, desc, info, work = aux)
@@ -493,9 +493,9 @@ contains
 																	& -gamma_, mvec_tmp, modulo(ind_tmp - 3, 3) + 1, mvec_tmp, ind_tmp, desc, info)
 							idx_Z = idx_Z + 1
 							!call prec%apply(mvec_tmp, ind_tmp, Z, idx_Z, desc, info, work = aux)
-							call psb_d2s_mvect_col(mvec_tmp, ind_tmp, vec_single, desc, info)
+							call psb_d2s_mvect_col(mvec_tmp, ind_tmp, vec_single, info)
 							call prec%apply(vec_single, desc, info, work = saux)
-							call psb_s2d_mvect_col(vec_single, Z, idx_Z, desc, info)
+							call psb_s2d_mvect_col(vec_single, Z, idx_Z, info)
 
 							idx_Q = idx_Q + 1
 							call psb_spmm(done, spmat, Z, idx_Z, dzero, Q, idx_Q, desc, info, work = aux)

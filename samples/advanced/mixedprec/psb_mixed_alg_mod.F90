@@ -906,6 +906,7 @@ contains
 		real(psb_dpk_), allocatable     :: alpha(:), beta(:, :), W(:, :), temp_fa(:, :), B2(:, :), c0(:)
 		integer(psb_ipk_), allocatable  :: pW(:)
 		type(psb_d_vect_type)           :: r  
+		type(psb_s_vect_type)           :: v_single  
 		type(psb_d_multivect_type)      :: Z, Q, P, V, temp_mv
 		real(psb_dpk_)                  :: cheb_coeff(3)
 		integer(psb_ipk_)               :: itidx
@@ -915,6 +916,7 @@ contains
 
 		type(psb_d_multivect_type), target  :: aux_mv
 		real(psb_dpk_), allocatable, target :: aux_fa(:)
+		real(psb_spk_), allocatable, target :: aux_sa(:)
 
 		character(len=3), parameter   :: forwardGS = "FGS"
 		character(len=3), parameter   :: lapackLU = "LLU"
@@ -993,6 +995,7 @@ contains
 		!Allocate and assembly data structure
 		allocate(alpha(s), beta(s, s), W(s, s), pW(s), temp_fa(s, 2*s + 1), B2(s, s), c0(s), aux_fa(4*n_col), stat = info)
 		if(info == psb_success_) call psb_geall(r, desc_a, info)
+		if(info == psb_success_) call psb_geall(v_single, desc_a, info)
 		if(info == psb_success_) call psb_geall(Z, desc_a, info, n = s)
 		if(info == psb_success_) call psb_geall(Q, desc_a, info, n = s)
 		if(info == psb_success_) call psb_geall(P, desc_a, info, n = s)
@@ -1000,6 +1003,7 @@ contains
 		if(info == psb_success_) call psb_geall(temp_mv, desc_a, info, n = s)
 		if(info == psb_success_) call psb_geall(aux_mv, desc_a, info, n = 3)
 		if(info == psb_success_) call psb_geasb(r, desc_a, info)
+		if(info == psb_success_) call psb_geasb(v_single, desc_a, info)
 		if(info == psb_success_) call psb_geasb(Z, desc_a, info)
 		if(info == psb_success_) call psb_geasb(Q, desc_a, info)
 		if(info == psb_success_) call psb_geasb(P, desc_a, info)
@@ -1051,9 +1055,9 @@ contains
 		end if
 		
 		! First matrix power kernel
-		call psb_mixed_pMPK_split(a, prec, r, P, V, s, desc_a, info, base_type = base_type_, &
+		call psb_mixed_pMPK_split(a, prec, r, P, V, s, v_single, desc_a, info, base_type = base_type_, &
 										& alpha = cheb_coeff(1), beta = cheb_coeff(2), gamma = cheb_coeff(3), &
-										& mvec_temp = aux_mv, farr_temp = aux_fa)
+										& mvec_temp = aux_mv, farr_temp = aux_fa, sarr_temp = aux_sa)
 		if(info /= psb_success_) then 
 			info = psb_err_from_subroutine_ 
 			call psb_errpush(info, name)
@@ -1093,9 +1097,9 @@ contains
 			if(psb_check_conv(methdfullname, itidx, x, r, desc_a, stopdat, info)) exit
 
 			! Matrix power kernel
-			call psb_mixed_pMPK_split(a, prec, r, Z, Q, s, desc_a, info, base_type = base_type_, &
+			call psb_mixed_pMPK_split(a, prec, r, Z, Q, s, v_single, desc_a, info, base_type = base_type_, &
 										& alpha = cheb_coeff(1), beta = cheb_coeff(2), gamma = cheb_coeff(3), &
-										& mvec_temp = aux_mv, farr_temp = aux_fa)
+										& mvec_temp = aux_mv, farr_temp = aux_fa, sarr_temp = aux_sa)
 
 			! Compute dot products
 			call psb_gedots(P, Q, temp_fa(:, 1 : s), desc_a, info, global = .false.)

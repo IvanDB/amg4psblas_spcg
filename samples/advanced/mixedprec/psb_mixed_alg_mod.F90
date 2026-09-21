@@ -428,7 +428,7 @@ contains
 							idx_Z = idx_Z + 1
 							call psb_d2s_mvect_col(Q, idx_Q, vec_single, info)
 							call prec%apply(vec_single, desc, info, work = saux)
-							call psb_s2d_mvect_col(vec_single, Z, idx_Z, desc, info)
+							call psb_s2d_mvect_col(vec_single, Z, idx_Z, info)
 							
 							idx_Q = idx_Q + 1
 							call psb_spmm(done, spmat, Z, idx_Z, dzero, Q, idx_Q, desc, info, work = aux)

@@ -858,31 +858,31 @@ program amg_d_pde3d
 		call prec%descr(info, iout=psb_out_unit)
 	end if
 	if (iam == psb_root_) then
-		write(psb_out_unit, '("Computed solution on ", i8, " process(es)")')		 np
-		write(psb_out_unit, '("Number of threads									 : ", i12)')		nth
-		write(psb_out_unit, '("Total number of tasks							 : ", i12)')		nth*np
-		write(psb_out_unit, '("Discretization domain size					: ", i12)')		idim
-		write(psb_out_unit, '("Linear system size									: ", i12)')		system_size
-		write(psb_out_unit, '("PDE Coefficients										: ", a)')			trim(pdecoeff)
-		write(psb_out_unit, '("Problem setup time									: ", es12.5)') tpgen
+		write(psb_out_unit, '("Computed solution on ", i8, " process(es)")')  np
+		write(psb_out_unit, '("Number of threads                  : ", i12)') nth
+		write(psb_out_unit, '("Total number of tasks              : ", i12)') nth*np
+		write(psb_out_unit, '("Discretization domain size         : ", i12)') idim
+		write(psb_out_unit, '("Linear system size                 : ", i12)') system_size
+		write(psb_out_unit, '("PDE Coefficients                   : ", a)')   trim(pdecoeff)
+		write(psb_out_unit, '("Problem setup time                 : ", es12.5)') tpgen
 		
-		write(psb_out_unit, '("Krylov method											 : ", a)')			trim(s_choice%kmethd)
+		write(psb_out_unit, '("Krylov method                      : ", a)')  trim(s_choice%kmethd)
 		if((psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCG') .or. &
-      & (psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCG1') .or. &
-      & (psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCGMIXED') .or. &
-      & (psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCG1MIXED') .or. &
-      & (psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCG-MIXED') .or. &
-      & (psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCG1-MIXED')) then
-			write(psb_out_unit, '("step size s												 : ", i2)')	 s_choice%steps
+			& (psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCG1') .or. &
+			& (psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCGMIXED') .or. &
+			& (psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCG1MIXED') .or. &
+			& (psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCG-MIXED') .or. &
+			& (psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCG1-MIXED')) then
+			write(psb_out_unit, '("step size s                        : ", i2)')	 s_choice%steps
 		end if
 
-		write(psb_out_unit, '("Preconditioner										 : ", a)') trim(p_choice%descr)
-		write(psb_out_unit, '("Iterations to convergence					: ", i12)')		iter
-		write(psb_out_unit, '("Relative error estimate on exit		: ", es12.5)') err
-		write(psb_out_unit, '("Number of levels in hierarchy			: ", i12)')		nlv
-		write(psb_out_unit, '("Time to build hierarchy						: ", es12.5)') thier
-		write(psb_out_unit, '("Time to build smoothers						: ", es12.5)') tsmth
-		write(psb_out_unit, '("Total preconditioner setup time		: ", es12.5)') tsmth+thier
+		write(psb_out_unit, '("Preconditioner                     : ", a)')  trim(p_choice%descr)
+		write(psb_out_unit, '("Iterations to convergence          : ", i12)') iter
+		write(psb_out_unit, '("Relative error estimate on exit    : ", es12.5)') err
+		write(psb_out_unit, '("Number of levels in hierarchy      : ", i12)') nlv
+		write(psb_out_unit, '("Time to build hierarchy            : ", es12.5)') thier
+		write(psb_out_unit, '("Time to build smoothers            : ", es12.5)') tsmth
+		write(psb_out_unit, '("Total preconditioner setup time    : ", es12.5)') tsmth+thier
 
 		if(((psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCG') .or. &
 			& (psb_toupper(trim(s_choice%kmethd)) == 'SSTEPCG1') .or. &
@@ -893,18 +893,18 @@ program amg_d_pde3d
 			write(psb_out_unit, '("Time to estimate the extreme eigv	 : ", es12.5)') tstpm
 		end if
 
-		write(psb_out_unit, '("Time to solve system							 : ", es12.5)') tslv
-		write(psb_out_unit, '("Time per iteration								 : ", es12.5)') tslv/iter
-		write(psb_out_unit, '("Total time												 : ", es12.5)') tslv+tsmth+thier
-		write(psb_out_unit, '("Residual 2-norm										: ", es12.5)') resmx
-		write(psb_out_unit, '("Residual inf-norm									: ", es12.5)') resmxp
-		write(psb_out_unit, '("Total memory occupation for X			 : ", i16)')		vecsize
-		write(psb_out_unit, '("Total memory occupation for A			 : ", i16)')		amatsize
-		write(psb_out_unit, '("Total memory occupation for DESC_A	: ", i16)')		descsize
-		write(psb_out_unit, '("Total memory occupation for PREC		: ", i16)')		precsize
-		write(psb_out_unit, '("Total memory occupation						 : ", i16)')		amatsize + descsize + precsize + 2*vecsize		
-		write(psb_out_unit, '("Storage format for A								: ", a	)')		a%get_fmt()
-		write(psb_out_unit, '("Storage format for DESC_A					 : ", a	)')		desc_a%get_fmt()
+		write(psb_out_unit, '("Time to solve system               : ", es12.5)') tslv
+		write(psb_out_unit, '("Time per iteration                 : ", es12.5)') tslv/iter
+		write(psb_out_unit, '("Total time                         : ", es12.5)') tslv+tsmth+thier
+		write(psb_out_unit, '("Residual 2-norm                    : ", es12.5)') resmx
+		write(psb_out_unit, '("Residual inf-norm                  : ", es12.5)') resmxp
+		write(psb_out_unit, '("Total memory occupation for X      : ", i16)') vecsize
+		write(psb_out_unit, '("Total memory occupation for A      : ", i16)') amatsize
+		write(psb_out_unit, '("Total memory occupation for DESC_A : ", i16)') descsize
+		write(psb_out_unit, '("Total memory occupation for PREC   : ", i16)') precsize
+		write(psb_out_unit, '("Total memory occupation            : ", i16)') amatsize + descsize + precsize + 2*vecsize		
+		write(psb_out_unit, '("Storage format for A               : ", a	)') a%get_fmt()
+		write(psb_out_unit, '("Storage format for DESC_A          : ", a	)') desc_a%get_fmt()
 	end if
 
 	! call psb_print_timers(ctxt)
